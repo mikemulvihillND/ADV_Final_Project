@@ -1,0 +1,70 @@
+---
+title: "ADV Final Project"
+author: "Michael Mulvihill"
+date: last-modified
+subtitle: "ADV"
+format: 
+   html:
+     toc: true
+     toc-location: left
+     df-print: paged
+     embed-resources: true
+#execute:
+ # warning: false
+---
+## Imports
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(sf))
+suppressPackageStartupMessages(library(ggmap))
+suppressPackageStartupMessages(library(leaflet))
+```
+
+## Exploring the Data
+
+```{r}
+phone_calls <- read_csv("311_Phone_Call_Log_Mod.csv", show_col_types = F)
+businesses <- read_csv("Business_Licenses.csv", show_col_types = F)
+code_enforcement <- read_csv("code_enforcement.csv", show_col_types = F)
+public_facilities <- read_csv("Public_Facilities.csv", show_col_types = F)
+parks <- read_csv("Parks_Locations_and_Features.csv", show_col_types = F)
+street_lights <- read_csv("Street_Lights.csv", show_col_types = F)
+```
+
+```{r}
+school_boundaries <- 
+  st_read("School_Boundaries/School_Boundaries.shp")
+
+abandoned_properties <- 
+  st_read("Abandoned_Property_Parcels/Abandoned_Property_Parcels.shp")
+
+city_council_districts <- 
+  st_read("City_Council_Districts/City_Council_Districts.shp")
+
+census_2020 <- 
+  st_read("2020_CensusData/2020_CensusData.shp")
+```
+
+```{r}
+colnames(phone_calls)
+colnames(businesses)
+colnames(code_enforcement)
+colnames(public_facilities)
+colnames(parks)
+colnames(street_lights)
+```
+
+```{r}
+plot(school_boundaries$geometry)
+plot(census_2020$geometry)
+plot(city_council_districts$geometry)
+plot(abandoned_properties$geometry)
+```
+
+```{r}
+parks_spatial <- 
+  parks %>% 
+  st_as_sf(coords = c("Lon","Lat")) %>% 
+  st_set_crs(value = 4326) 
+```
