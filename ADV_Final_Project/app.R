@@ -35,7 +35,6 @@ ui <- fluidPage(
       mainPanel(
         h4("Top Call Types"),
         verbatimTextOutput("call_summary"),
-        ## TODO
         plotOutput("call_plot")
       )
     )),
@@ -50,6 +49,7 @@ ui <- fluidPage(
             "Select Service:",
             choices = c("Fire Station", "Police Station")
           ),
+          selectInput("facility_dropdown", "Select Facility:", choices = NULL),
           sliderInput(
             "service_radius",
             "Select Radius (miles):",
@@ -182,16 +182,60 @@ server <- function(input, output, session) {
   })
   
   ## Emergency Service Coverage
+  
+  observeEvent(input$service_type, {req(input$service_type)
+    facilities_selected_type <- facilities_3857%>%filter(toupper(POPL_TYPE)==toupper(input$service_type))
+    
+    updateSelectInput(session, "facility_dropdown",
+                      choices=facilities_selected_type$POPL_NAME,
+                      selected=NULL)})
+  
+  selected_facility <- reactive({
+    req(input$facility_dropdown)
+    facilities_3857 %>% filter(POPL_NAME==input$facility_dropdown)
+  })
+  
+  service_area <- reactive({
+    req(selected_facility())
+    radius_m <- input$service_radius*meters_to_miles
+    st_buffer(selected_facility(), dist=radius_m)
+  })
+  
+  population_served <- reactive({
+    area <- service_area()
+    req(area)
+    tracts <- st_intersection(census_3857, area)
+    sum(tracts$A00001_1, na.rm=TRUE)
+    })
   output$service_summary <- renderText({
-    paste("Population coverage statistics will appear here for",
-          input$service_type)
+    facility <- selected_facility()
+    population <- population_served()
+    req(facility, population)
+    
+    paste0("Facility: ", facility$POPL_NAME, "\n",
+           "Service Type: ", input$service_type, "\n",
+           "Radius: ", input$service_radius, " miles\n",
+           "Population within radius: ", population)
   })
   output$service_map <- renderLeaflet({
-    leaflet() %>%
-      addProviderTiles("CartoDB.Positron") %>%
-      addMarkers(lng = -86,
-                 lat = 41,
-                 popup = "Placeholder Service Location")
+    facility <- selected_facility()
+    area <- service_area()
+    
+    if (is.null(facility)) {
+      leaflet() %>% addTiles(group = "Basic") %>%
+        setView(lng = -86.25,
+                lat = 41.68,
+                zoom = 12)
+    } else {
+      leaflet() %>%
+        addTiles(group = "Basic") %>%
+        addMarkers(data = st_transform(facility, 4326),
+                   popup = facility$POPL_NAME) %>%
+        addPolygons(data=st_transform(area, 4326),
+          color = "blue",
+          weight = 4
+        )
+    }
   })
   
   ## Business License Analysis

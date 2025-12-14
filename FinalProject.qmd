@@ -82,7 +82,11 @@ phone_calls <- phone_calls%>%filter(Called_About!="*No Article Found*")
 
 ## Tab 2 - 
 ```{r}
-## Variables/logic for backend of tab 2 go here
+facilities_sf <- st_as_sf(public_facilities, coords = c("Lon", "Lat"), crs = 4326)
+
+## 3857 transformation for distance calculations
+facilities_3857 <- st_transform(facilities_sf, 3857)
+census_3857 <- st_transform(census_2020, 3857)
 ```
 
 ## Tab 3 - 
