@@ -3,7 +3,7 @@ suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(sf))
 suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
-options(warn = -1)
+options(warn=-1)
 
 ## Overall fluid page
 ui <- fluidPage(
@@ -92,7 +92,6 @@ ui <- fluidPage(
             value = 2,
             step = 0.1
           ),
-          hr(),
           h4("Route Statistics"),
           verbatimTextOutput("route_stats"),
           uiOutput("no_parks_msg")
@@ -142,27 +141,21 @@ server <- function(input, output, session) {
   ## Reactive based on selected school
   school_point <- reactive({
     req(input$school)
-    school_boundaries %>%
+    school_boundaries_3857 %>%
       filter(School == input$school) %>%
-      st_centroid() %>%
-      st_transform(3857)
+      st_centroid()
   })
   
-  ## Get parks within user-selected radius with error handling
+  ## Get parks within user-selected radius
   parks_within_radius <- reactive({
     req(school_point())
-    radius_m <- input$radius_miles * 1609.34
+    radius_m <- input$radius_miles * meters_to_miles
     
-    tryCatch({
-      parks_sf %>%
-        st_transform(3857) %>%
-        filter(Park_Type_Kid_Friendly,
-               as.numeric(st_distance(geometry, school_point())) <= radius_m)
-    }, error = function(e) {
-      ## Return empty sf if error occurs
-      st_sf(data.frame(), geometry = st_sfc())
-    })
+    parks_3857 %>%
+      filter(Park_Type_Kid_Friendly,
+             as.numeric(st_distance(geometry, school_point())) <= radius_m)
   })
+  
   
   output$no_parks_msg <- renderUI({
     if (nrow(parks_within_radius()) == 0) {
@@ -173,8 +166,9 @@ server <- function(input, output, session) {
     }
   })
   
-  ## Update park dropdown
-  observeEvent(school_point(), {
+  ## Update park dropdown if radius slider changes
+  ## Parks already update based on school selection
+  observeEvent(parks_within_radius(), {
     nearby_parks <- parks_within_radius()
     
     if (nrow(nearby_parks) == 0) {
@@ -190,21 +184,17 @@ server <- function(input, output, session) {
     }
   })
   
+  
   ## Park point reactive
-  ## tryCatch to ensure app doesn't break if a selected school
-  ## has no parks within selectd walking distance
   park_point <- reactive({
     parks <- parks_within_radius()
     if (nrow(parks) == 0)
       return(NULL)
     
-    tryCatch({
-      parks %>%
-        filter(Park_Name == input$park) %>%
-        st_transform(3857)
-    }, error = function(e)
-      NULL)
+    parks %>%
+      filter(Park_Name == input$park)
   })
+  
   
   ## Walking route
   ## tryCatch for same purpose as above
@@ -222,35 +212,32 @@ server <- function(input, output, session) {
   })
   
   ## Buffer route with margin of error defined in QMD
-  ## tryCatch as above in case route does not exist
+  ## tryCatch in case route does not exist
   route_buffer <- reactive({
     r <- route()
     if (is.null(r))
       return(NULL)
-    
+  
     tryCatch({
-      st_buffer(r, dist = route_buffer_meters)
+      st_buffer(st_make_valid(r), dist = route_buffer_meters)
     }, error = function(e)
       NULL)
+    
   })
   
   ## Street lights along route
-  ## tryCatch to ensure route exists
   route_lights <- reactive({
     buf <- route_buffer()
     if (is.null(buf))
       return(NULL)
     
-    tryCatch({
-      street_lights_sf %>%
-        st_transform(3857) %>%
-        st_intersection(buf)
-    }, error = function(e)
-      NULL)
+    street_lights_3857 %>%
+      st_intersection(buf)
   })
   
+  
   ## Stats output
-  ## If
+  ## If null, display no output
   output$route_stats <- renderText({
     lights <- route_lights()
     buf <- route_buffer()
@@ -261,10 +248,10 @@ server <- function(input, output, session) {
     }
     
     ## Metrics calculation
-    area_sq_miles <- as.numeric(st_area(buf)) * 3.861e-7
+    area_sq_miles <- as.numeric(st_area(buf)) * meters_to_sq_miles
     num_lights <- nrow(lights)
     lights_density <- num_lights / area_sq_miles
-    distance_miles <- as.numeric(st_length(r)) / 1609.34
+    distance_miles <- as.numeric(st_length(r)) / meters_to_miles
     total_lumens <- sum(lights$lumens_numeric, na.rm = TRUE)
     lumens_per_sq_mile <- total_lumens / area_sq_miles
     pct_missing <- sum(is.na(lights$lumens_numeric)) / num_lights
@@ -302,13 +289,13 @@ server <- function(input, output, session) {
     park <- park_point()
     
     if (is.null(lights) || is.null(r) || is.null(park)) {
-      leaflet() %>% addTiles(group="Basic") %>%
+      leaflet() %>% addTiles(group = "Basic") %>%
         setView(lng = -86.25,
                 lat = 41.68,
                 zoom = 12)
     } else {
       leaflet() %>%
-        addTiles(group="Basic") %>%
+        addTiles(group = "Basic") %>%
         addMarkers(data = st_transform(school_point(), 4326),
                    popup = school_point()$School) %>%
         addMarkers(data = st_transform(park, 4326),

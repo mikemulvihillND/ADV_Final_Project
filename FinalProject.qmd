@@ -66,6 +66,11 @@ plot(census_2020$geometry)
 plot(city_council_districts$geometry)
 plot(abandoned_properties$geometry)
 ```
+## Constants
+```{r}
+meters_to_sq_miles <- 3.861e-7
+meters_to_miles <- 1609.34
+```
 ## Tab 1 - 
 ```{r}
 ## Variables/logic for backend of tab 1 go here
@@ -109,4 +114,9 @@ route_buffer_meters <- 100
 ## Make parks and street lights spatial
 parks_sf <- st_as_sf(parks, coords = c("Lon", "Lat"), crs = 4326)
 street_lights_sf <- st_as_sf(street_lights, coords = c("Lon", "Lat"), crs = 4326)
+
+## 3857 transformation for distance calculations
+parks_3857 <- st_transform(parks_sf, 3857)
+street_lights_3857 <- st_transform(street_lights_sf, 3857)
+school_boundaries_3857 <- st_transform(school_boundaries, 3857)
 ```
