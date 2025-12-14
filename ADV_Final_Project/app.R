@@ -3,7 +3,8 @@ suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(sf))
 suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
-options(warn=-1)
+suppressPackageStartupMessages(library(patchwork))
+options(warn = -1)
 
 ## Overall fluid page
 ui <- fluidPage(
@@ -17,12 +18,17 @@ ui <- fluidPage(
           "call_dates",
           "Select Date Range:",
           start = min(phone_calls$Call_Date),
-          end   = max(phone_calls$Call_Date)
+          end   = max(phone_calls$Call_Date),
+          min = min(phone_calls$Call_Date),
+          max = max(phone_calls$Call_Date)
         ),
         checkboxGroupInput(
           "call_months",
-          "Or select specific months:",
-          choices = month.name,
+          "Or Select Specific Months:",
+          ## Filter selections by months present in the data frame (no June/July)
+          choices = sort(unique(
+            lubridate::month(phone_calls$Call_Date, label = TRUE, abbr = FALSE)
+          )),
           selected = NULL
         )
       ),
@@ -105,13 +111,74 @@ ui <- fluidPage(
 ## Server
 server <- function(input, output, session) {
   ## City Calls by Department
-  output$call_summary <- renderText({
-    ## TODO
-    paste("Top call types will appear here for selected dates/months.")
+  
+  ## Get user input - prioritize check boxes over date range
+  selected_call_dates <- reactive({
+    req(input$call_dates)
+    
+    if (length(input$call_months) > 0) {
+      phone_calls_filtered <- phone_calls %>% filter(lubridate::month(Call_Date, label = TRUE, abbr = FALSE) %in% input$call_months)
+    }
+    else{
+      phone_calls_filtered <- phone_calls %>% filter(Call_Date >= as.POSIXct(input$call_dates[1]) &
+                                                       Call_Date <= as.POSIXct((input$call_dates[2])))
+    }
+    phone_calls_filtered
   })
+  
+  ## Output user filtered top calls
+  output$call_summary <- renderText({
+    df <- selected_call_dates()
+    ## Get the top 5
+    called_about_count <- df %>% count(Called_About, sort = TRUE) %>% head(5)
+    department_count <- df %>% count(Department, sort = TRUE) %>% head(5)
+    
+    ## Output the text
+    paste0(
+      "Top Topics Called About:\n",
+      paste0(
+        " - ",
+        called_about_count$Called_About,
+        ": ",
+        called_about_count$n,
+        collapse = "\n"
+      ),
+      "\n\nTop Departments Called:\n",
+      paste0(
+        " - ",
+        department_count$Department,
+        ": ",
+        department_count$n,
+        collapse = "\n"
+      )
+    )
+    
+  })
+  
+  ## Graphical output
   output$call_plot <- renderPlot({
-    ## TODO
-    plot(1, 1, main = "Call Frequency Plot Placeholder")
+    df <- selected_call_dates()
+    top_calls <- df %>%
+      count(Called_About, sort = TRUE) %>%
+      head(5)
+    
+    top_departments <- df %>%
+      count(Department, sort = TRUE) %>%
+      head(5)
+    
+    call_plot <- ggplot(top_calls, aes(x = reorder(Called_About, n), y = n)) +
+      geom_col() +
+      coord_flip() +
+      labs(title = "Top Call Types", x = "", y = "Number of Calls") +
+      theme(axis.text.y = element_text(angle = 45, hjust = 1))
+    department_plot <- ggplot(top_departments, aes(x = reorder(Department, n), y = n)) +
+      geom_col() +
+      coord_flip() +
+      labs(title = "Top Departments", x = "", y = "Number of Calls") +
+      theme(axis.text.y = element_text(angle = 45, hjust = 1))
+    
+    ## Use patchwork library to plot them together
+    call_plot / department_plot
   })
   
   ## Emergency Service Coverage
@@ -217,7 +284,7 @@ server <- function(input, output, session) {
     r <- route()
     if (is.null(r))
       return(NULL)
-  
+    
     tryCatch({
       st_buffer(st_make_valid(r), dist = route_buffer_meters)
     }, error = function(e)

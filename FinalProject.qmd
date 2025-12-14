@@ -73,7 +73,11 @@ meters_to_miles <- 1609.34
 ```
 ## Tab 1 - 
 ```{r}
-## Variables/logic for backend of tab 1 go here
+## Call Date is a POSIXct, use that for the check in the server
+str(phone_calls)
+
+## Remove dirty entries
+phone_calls <- phone_calls%>%filter(Called_About!="*No Article Found*")
 ```
 
 ## Tab 2 - 
