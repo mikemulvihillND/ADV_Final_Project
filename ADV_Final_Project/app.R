@@ -70,14 +70,17 @@ ui <- fluidPage(
     ## Business License Analysis
     tabPanel("Business Licenses", sidebarLayout(
       sidebarPanel(
-        selectInput("district", "Select City Council District:", choices = sort(unique(
-          businesses$District
-        )))
+        selectInput("district", "Select City Council District:", choices = sort(
+          unique(businesses_indiana_districts$District)
+        )),
+        uiOutput("license_type_ui")
       ),
       mainPanel(
         h4("License Status Summary"),
-        verbatimTextOutput("license_summary"),
-        plotOutput("license_plot")
+        leafletOutput("license_map"),
+        plotOutput("license_plot"),
+        tableOutput("license_summary")
+        
       )
     )),
     
@@ -110,7 +113,9 @@ ui <- fluidPage(
 
 ## Server
 server <- function(input, output, session) {
-  ## City Calls by Department
+  
+  ## -----------------------------------------------------------------
+  ## Tab 1 -  City Calls by Department
   
   ## Get user input - prioritize check boxes over date range
   selected_call_dates <- reactive({
@@ -180,42 +185,57 @@ server <- function(input, output, session) {
     ## Use patchwork library to plot them together
     call_plot / department_plot
   })
+  ## -----------------------------------------------------------------
+  ## Tab 2 - Emergency Service Coverage
   
-  ## Emergency Service Coverage
-  
-  observeEvent(input$service_type, {req(input$service_type)
-    facilities_selected_type <- facilities_3857%>%filter(toupper(POPL_TYPE)==toupper(input$service_type))
+  observeEvent(input$service_type, {
+    req(input$service_type)
+    facilities_selected_type <- facilities_3857 %>% filter(toupper(POPL_TYPE) ==
+                                                             toupper(input$service_type))
     
-    updateSelectInput(session, "facility_dropdown",
-                      choices=facilities_selected_type$POPL_NAME,
-                      selected=NULL)})
+    updateSelectInput(
+      session,
+      "facility_dropdown",
+      choices = facilities_selected_type$POPL_NAME,
+      selected = NULL
+    )
+  })
   
   selected_facility <- reactive({
     req(input$facility_dropdown)
-    facilities_3857 %>% filter(POPL_NAME==input$facility_dropdown)
+    facilities_3857 %>% filter(POPL_NAME == input$facility_dropdown)
   })
   
   service_area <- reactive({
     req(selected_facility())
-    radius_m <- input$service_radius*meters_to_miles
-    st_buffer(selected_facility(), dist=radius_m)
+    radius_m <- input$service_radius * meters_to_miles
+    st_buffer(selected_facility(), dist = radius_m)
   })
   
   population_served <- reactive({
     area <- service_area()
     req(area)
     tracts <- st_intersection(census_3857, area)
-    sum(tracts$A00001_1, na.rm=TRUE)
-    })
+    sum(tracts$A00001_1, na.rm = TRUE)
+  })
   output$service_summary <- renderText({
     facility <- selected_facility()
     population <- population_served()
     req(facility, population)
     
-    paste0("Facility: ", facility$POPL_NAME, "\n",
-           "Service Type: ", input$service_type, "\n",
-           "Radius: ", input$service_radius, " miles\n",
-           "Population within radius: ", population)
+    paste0(
+      "Facility: ",
+      facility$POPL_NAME,
+      "\n",
+      "Service Type: ",
+      input$service_type,
+      "\n",
+      "Radius Served: ",
+      input$service_radius,
+      " miles\n",
+      "Population Served within Radius: ",
+      population
+    )
   })
   output$service_map <- renderLeaflet({
     facility <- selected_facility()
@@ -231,24 +251,146 @@ server <- function(input, output, session) {
         addTiles(group = "Basic") %>%
         addMarkers(data = st_transform(facility, 4326),
                    popup = facility$POPL_NAME) %>%
-        addPolygons(data=st_transform(area, 4326),
+        addPolygons(
+          data = st_transform(area, 4326),
           color = "blue",
           weight = 4
         )
     }
   })
   
-  ## Business License Analysis
-  output$license_summary <- renderText({
-    paste("Aggregated license status summary for district",
-          input$district)
+  ## -----------------------------------------------------------------
+  ## Tab 3 - Business License Analysis
+  
+  ## Get user selected district
+  district_businesses <- reactive({
+    businesses_indiana_districts %>% filter(District == input$district)
+  })
+  
+  ## Get active businesses for an expired business
+  closest_active_business <- reactive({
+    req(input$district, input$expired_business)
+    
+    expired <- businesses_indiana_districts %>% 
+      filter(District == input$district,
+             status_group == "Expired",
+             `License Type` == input$expired_business) %>%
+      st_make_valid() %>% 
+      st_collection_extract("POINT")
+    
+    safe <- businesses_indiana_districts %>% 
+      filter(District == input$district,
+             status_group == "Safe",
+             `License Type` == input$expired_business) %>%
+      st_make_valid() %>% 
+      st_collection_extract("POINT")
+    
+    ## If empty break out
+    if(nrow(expired) == 0 | nrow(safe) == 0) return(NULL)
+    
+    ## Find nearest safe businesses for expired business
+    nearest_list <- lapply(1:nrow(expired), function(i) {
+      e <- expired[i, ]
+      idx <- st_nearest_feature(e, safe)
+      safe_nearest <- safe[idx, ]
+      list(expired = e, safe = safe_nearest)
+    })
+    
+    nearest_list
+  })
+  
+  
+  ## Let the expired license list update based on user district selection
+  output$license_type_ui <- renderUI({
+    req(input$district)
+    
+    ## Get all expired licenses in a district
+    expired_types <- businesses_indiana_districts %>%
+      st_drop_geometry() %>%
+      filter(District == input$district, status_group == "Expired") %>%
+      pull(`License Type`) %>%
+      unique() %>%
+      sort()
+    
+    selectInput("expired_business", "Select License to Replace:", choices = expired_types)
+  })
+  
+
+  ## Map of licenses
+  output$license_map <- renderLeaflet({
+    nearest <- closest_active_business()
+    
+    if (is.null(nearest)) {
+      leaflet() %>% addTiles(group = "Basic") %>%
+        setView(lng = -86.25,
+                lat = 41.68,
+                zoom = 12)
+    } else {
+      ## Map creation
+      m <- leaflet() %>%
+        addTiles(group = "Basic")
+      
+      ## Loop over pairs to plot
+      for (pair in nearest) {
+        m <- m %>%
+          addCircleMarkers(
+            data = st_transform(pair$expired, 4326),
+            radius = 6,
+            color = "red",
+            fill = TRUE,
+            fillOpacity = 0.8,
+            stroke = FALSE,
+            label = ~ paste("Expired:", `Business Name`, "-", `License Type`)
+          ) %>%
+          addCircleMarkers(
+            data = st_transform(pair$safe, 4326),
+            radius = 6,
+            color = "green",
+            fill = TRUE,
+            fillOpacity = 0.8,
+            stroke = FALSE,
+            label = ~ paste("Next Safe:", `Business Name`, "-", `License Type`)
+          )
+      }
+
+      m %>% addLegend(
+        colors = c("red", "green"),
+        labels = c("Expired Business", "Valid Business")
+      )
+    }
+  })
+  
+  ## Table of expired metrics
+  output$license_summary <- renderTable({
+    district_businesses() %>% st_drop_geometry() %>% count(status_group) %>% mutate(percent =
+                                                                                      round(100 * n / sum(n), 2))
   })
   output$license_plot <- renderPlot({
-    plot(1, 1, main = "Business License Status Plot Placeholder")
+    df <- district_businesses() %>%
+      st_drop_geometry() %>%
+      count(status_group) %>%
+      complete(status_group = c("Safe", "Expired", "Pending"),
+               fill = list(n = 0)) %>%
+      mutate(percent = round(100 * n / sum(n), 2))
+    
+    ggplot(df, aes(x = status_group, y = n, fill = status_group)) +
+      geom_col() +
+      geom_text(aes(label = n), vjust = -0.5) +
+      scale_fill_manual(values = c(
+        "Safe" = "green",
+        "Expired" = "red",
+        "Pending" = "yellow"
+      )) +
+      labs(
+        title = paste("Business License Status –", input$district),
+        x = "Status Group",
+        y = "Number of Businesses"
+      ) +
+      theme(legend.position = "none")
   })
   
-  ## Street lights along student walking paths
-  
+  ## -----------------------------------------------------------------
+  ## Tab 4 - Street lights along student walking paths
   ## Reactive based on selected school
   school_point <- reactive({
     req(input$school)
@@ -428,5 +570,6 @@ server <- function(input, output, session) {
   })
 }
 
+## -----------------------------------------------------------------
 ## Run Dashboard
 shinyApp(ui = ui, server = server)

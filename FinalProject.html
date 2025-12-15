@@ -6,8 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Michael Mulvihill">
-<meta name="dcterms.date" content="2025-12-10">
+<meta name="author" content="Darien Geyen, Austin Lee, Michael Mulvihill, Zach Stabrowski">
+<meta name="dcterms.date" content="2025-12-14">
 
 <title>ADV Final Project</title>
 <style>
@@ -3453,6 +3453,11 @@ window.onload = function() {
   <ul>
   <li><a href="#imports" id="toc-imports" class="nav-link active" data-scroll-target="#imports">Imports</a></li>
   <li><a href="#exploring-the-data" id="toc-exploring-the-data" class="nav-link" data-scroll-target="#exploring-the-data">Exploring the Data</a></li>
+  <li><a href="#constants" id="toc-constants" class="nav-link" data-scroll-target="#constants">Constants</a></li>
+  <li><a href="#tab-1--" id="toc-tab-1--" class="nav-link" data-scroll-target="#tab-1--">Tab 1 -</a></li>
+  <li><a href="#tab-2--" id="toc-tab-2--" class="nav-link" data-scroll-target="#tab-2--">Tab 2 -</a></li>
+  <li><a href="#tab-3--" id="toc-tab-3--" class="nav-link" data-scroll-target="#tab-3--">Tab 3 -</a></li>
+  <li><a href="#tab-4---schoolpark-routes-with-lights" id="toc-tab-4---schoolpark-routes-with-lights" class="nav-link" data-scroll-target="#tab-4---schoolpark-routes-with-lights">Tab 4 - School/Park Routes with Lights</a></li>
   </ul>
 </nav>
 </div>
@@ -3473,14 +3478,14 @@ window.onload = function() {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Michael Mulvihill </p>
+             <p>Darien Geyen, Austin Lee, Michael Mulvihill, Zach Stabrowski </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">December 10, 2025</p>
+      <p class="date">December 14, 2025</p>
     </div>
   </div>
   
@@ -3495,28 +3500,33 @@ window.onload = function() {
 <section id="imports" class="level2">
 <h2 class="anchored" data-anchor-id="imports">Imports</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(tidyverse))</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(sf))</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(ggmap))</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(leaflet))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(tidyverse))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(sf))</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(ggmap))</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(leaflet))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(osrm))</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(stringr))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="exploring-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="exploring-the-data">Exploring the Data</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>phone_calls <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;311_Phone_Call_Log_Mod.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>businesses <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Business_Licenses.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>code_enforcement <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;code_enforcement.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>public_facilities <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Public_Facilities.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>parks <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Parks_Locations_and_Features.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>street_lights <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Street_Lights.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Read in CSVs</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>phone_calls <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;311_Phone_Call_Log_Mod.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>businesses <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Business_Licenses.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>code_enforcement <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;code_enforcement.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>public_facilities <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Public_Facilities.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>parks <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Parks_Locations_and_Features.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>street_lights <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;Street_Lights.csv&quot;</span>, <span class="at">show_col_types =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>school_boundaries <span class="ot">&lt;-</span> </span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_read</span>(<span class="st">&quot;School_Boundaries/School_Boundaries.shp&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Read in shapefiles</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>school_boundaries <span class="ot">&lt;-</span> </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_read</span>(<span class="st">&quot;School_Boundaries/School_Boundaries.shp&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `School_Boundaries&#39; from data source 
-  `/Users/mikemulvihill/Desktop/NDDS/2025/Fall/ADV/FinalProject/School_Boundaries/School_Boundaries.shp&#39; 
+  `/Users/mikemulvihill/Desktop/git/ADV_Final_Project/School_Boundaries/School_Boundaries.shp&#39; 
   using driver `ESRI Shapefile&#39;
 Simple feature collection with 57 features and 3 fields
 Geometry type: MULTIPOLYGON
@@ -3528,7 +3538,7 @@ Geodetic CRS:  WGS 84</code></pre>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_read</span>(<span class="st">&quot;Abandoned_Property_Parcels/Abandoned_Property_Parcels.shp&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `Abandoned_Property_Parcels&#39; from data source 
-  `/Users/mikemulvihill/Desktop/NDDS/2025/Fall/ADV/FinalProject/Abandoned_Property_Parcels/Abandoned_Property_Parcels.shp&#39; 
+  `/Users/mikemulvihill/Desktop/git/ADV_Final_Project/Abandoned_Property_Parcels/Abandoned_Property_Parcels.shp&#39; 
   using driver `ESRI Shapefile&#39;
 Simple feature collection with 1511 features and 17 fields
 Geometry type: POLYGON
@@ -3540,7 +3550,7 @@ Geodetic CRS:  WGS 84</code></pre>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_read</span>(<span class="st">&quot;City_Council_Districts/City_Council_Districts.shp&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `City_Council_Districts&#39; from data source 
-  `/Users/mikemulvihill/Desktop/NDDS/2025/Fall/ADV/FinalProject/City_Council_Districts/City_Council_Districts.shp&#39; 
+  `/Users/mikemulvihill/Desktop/git/ADV_Final_Project/City_Council_Districts/City_Council_Districts.shp&#39; 
   using driver `ESRI Shapefile&#39;
 Simple feature collection with 6 features and 14 fields
 Geometry type: MULTIPOLYGON
@@ -3552,7 +3562,7 @@ Geodetic CRS:  WGS 84</code></pre>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_read</span>(<span class="st">&quot;2020_CensusData/2020_CensusData.shp&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reading layer `2020_CensusData&#39; from data source 
-  `/Users/mikemulvihill/Desktop/NDDS/2025/Fall/ADV/FinalProject/2020_CensusData/2020_CensusData.shp&#39; 
+  `/Users/mikemulvihill/Desktop/git/ADV_Final_Project/2020_CensusData/2020_CensusData.shp&#39; 
   using driver `ESRI Shapefile&#39;
 Simple feature collection with 82 features and 48 fields
 Geometry type: POLYGON
@@ -3562,7 +3572,8 @@ Geodetic CRS:  NAD83</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(phone_calls)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at column names to see what we&#39;re working with</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(phone_calls)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] &quot;Call_Date&quot;          &quot;Work_Order_Type&quot;    &quot;Called_About&quot;      
 [4] &quot;Department&quot;         &quot;Duration__Minutes_&quot; &quot;FID&quot;               
@@ -3634,7 +3645,8 @@ Geodetic CRS:  NAD83</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(school_boundaries<span class="sc">$</span>geometry)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Plot shapefiles</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(school_boundaries<span class="sc">$</span>geometry)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -3667,11 +3679,748 @@ Geodetic CRS:  NAD83</code></pre>
 </div>
 </div>
 </div>
+</section>
+<section id="constants" class="level2">
+<h2 class="anchored" data-anchor-id="constants">Constants</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>parks_spatial <span class="ot">&lt;-</span> </span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  parks <span class="sc">%&gt;%</span> </span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>,<span class="st">&quot;Lat&quot;</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_set_crs</span>(<span class="at">value =</span> <span class="dv">4326</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>meters_to_sq_miles <span class="ot">&lt;-</span> <span class="fl">3.861e-7</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>meters_to_miles <span class="ot">&lt;-</span> <span class="fl">1609.34</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="tab-1--" class="level2">
+<h2 class="anchored" data-anchor-id="tab-1--">Tab 1 -</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Call Date is a POSIXct, use that for the check in the server</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(phone_calls)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>spc_tbl_ [61,075 × 7] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+ $ Call_Date         : POSIXct[1:61075], format: &quot;2017-03-24 19:25:00&quot; &quot;2017-03-24 16:53:00&quot; ...
+ $ Work_Order_Type   : chr [1:61075] NA NA NA NA ...
+ $ Called_About      : chr [1:61075] &quot;Account Number&quot; &quot;County Services Information&quot; &quot;Water Miscellaneous&quot; &quot;Miscellaneous Trash Information&quot; ...
+ $ Department        : chr [1:61075] &quot;Water Works&quot; &quot;311 Office&quot; &quot;Water Works&quot; &quot;Solid Waste&quot; ...
+ $ Duration__Minutes_: &#39;hms&#39; num [1:61075] 01:00:00 01:27:00 01:22:00 00:13:00 ...
+  ..- attr(*, &quot;units&quot;)= chr &quot;secs&quot;
+ $ FID               : num [1:61075] 7001 7002 7003 7004 7005 ...
+ $ duration_Seconds  : num [1:61075] 60 87 82 13 281 130 15 97 40 106 ...
+ - attr(*, &quot;spec&quot;)=
+  .. cols(
+  ..   Call_Date = col_datetime(format = &quot;&quot;),
+  ..   Work_Order_Type = col_character(),
+  ..   Called_About = col_character(),
+  ..   Department = col_character(),
+  ..   Duration__Minutes_ = col_time(format = &quot;&quot;),
+  ..   FID = col_double(),
+  ..   duration_Seconds = col_double()
+  .. )
+ - attr(*, &quot;problems&quot;)=&lt;externalptr&gt; </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(phone_calls<span class="sc">$</span>Department)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+                   311 Office    Administration and Finance 
+                         4258                           120 
+               Animal Control                      Building 
+                         1236                           157 
+                   City Clerk            City of South Bend 
+                           59                          3296 
+Code Enforcement - Department          Community Investment 
+                           43                           373 
+                  Engineering               Fire Department 
+                         1298                            19 
+              Human Resources                         Legal 
+                          330                            48 
+               Mayor&#39;s Office             Organic Resources 
+                         1877                           369 
+                        Parks           Parks - Maintenance 
+                           93                           164 
+            Police Department                  Public Works 
+                          162                             4 
+              Safety and Risk                   Solid Waste 
+                            3                         22168 
+                      Streets                   Waste Water 
+                         5392                             4 
+                  Water Works 
+                        19602 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(phone_calls<span class="sc">$</span>Called_About)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+                                                               *No Article Found* 
+                                                                             3296 
+                                                         ACCC - General Complaint 
+                                                                               10 
+                                                      Account Balance or Due Date 
+                                                                             1678 
+                                                                   Account Number 
+                                                                              277 
+                                                          Account Shut Off Amount 
+                                                                             3759 
+                                                       ACGI - General Information 
+                                                                             1095 
+                                                       ADMI - General Information 
+                                                                              104 
+                                                          AEP General Information 
+                                                                              190 
+                                                    Alley Maintenance (In Season) 
+                                                                               28 
+                                                Alley Maintenance (Out of Season) 
+                                                                               94 
+                                                       Alley to Curb Pick Inquiry 
+                                                                              328 
+                                                          Animal and Pet Adoption 
+                                                                               34 
+                                               Animal and Pet License Information 
+                                                                               27 
+                                                              Animal Welfare Call 
+                                                                               14 
+                                                               Bank Draft Inquiry 
+                                                                              150 
+                                                                      Barking Dog 
+                                                                                9 
+                                                          Basic Rates and Charges 
+                                                                               24 
+                                                           BLDG - General Concern 
+                                                                                3 
+                                                            Block Party Inquiries 
+                                                                                2 
+                                                     BUIL - Miscellaneous Concern 
+                                                                              117 
+                                                          Building Code Violation 
+                                                                               37 
+                                                              Calls from Veterans 
+                                                                                3 
+                                                              Catch Basin Cave-In 
+                                                                               12 
+                                                     Check for Water Leaks Inside 
+                                                                                1 
+                                                           Christmas Tree Pick-up 
+                                                                              760 
+                                                                   Clerk&#39;s Office 
+                                                                               59 
+                                                         COMP - General Complaint 
+                                                                              125 
+                                          Complaint Against Taxi Company/Operator 
+                                                                               11 
+                                            Complaint Escalated to Mayor&#39;s Office 
+                                                                               85 
+                                             Complaint from Taxi Company/Operator 
+                                                                                1 
+                                                              Compost Information 
+                                                                                9 
+                                               Contact Info, Hours, and Locations 
+                                                                               62 
+                                                         Container Repair Request 
+                                                                              271 
+                                                        Container Upsize/Downsize 
+                                                                              179 
+                                                      County Services Information 
+                                                                             2076 
+                                                         County Services Transfer 
+                                                                               45 
+                                                                  Crack in Street 
+                                                                                2 
+                                                                      Curb Damage 
+                                                                                2 
+                                                             Customer Compliments 
+                                                                               17 
+                                            Customer Inquiries Following IVR Call 
+                                                                             1007 
+                                                         Customer Property Damage 
+                                                                                9 
+                                                          DCGC - General Concerns 
+                                                                               54 
+                                                                   DCI Complaints 
+                                                                                1 
+                                                                      Dead Animal 
+                                                                              220 
+                                                                 Debris in Street 
+                                                                               86 
+                                                            Deferred Payment Plan 
+                                                                                4 
+                                                            Delayed Trash Service 
+                                                                              345 
+                                                             Did not receive bill 
+                                                                               41 
+                                                   Did Not Receive Mayor&#39;s Letter 
+                                                                                1 
+                                                                 Discolored Water 
+                                                                               63 
+                                                                     Dog at Large 
+                                                                               29 
+                                                                         Dog Bite 
+                                                                                4 
+                                                                   Downsize Meter 
+                                                                                1 
+                                                     Downspout Disconnect Program 
+                                                                              137 
+                                                        Downspout General Concern 
+                                                                               23 
+                                                               Duplicate Payments 
+                                                                                1 
+                                                             Electricity Shut-Off 
+                                                                                1 
+                                                         ENCO - General Complaint 
+                                                                                2 
+                                                            ENG - General Concern 
+                                                                              505 
+                                                               Extra Trash Pickup 
+                                                                             6687 
+                                                          Extra Yard Waste Pickup 
+                                                                             2002 
+                                                     Extra Yard Waste Pickup Miss 
+                                                                                8 
+                                             Facility or Ball Diamond Reservation 
+                                                                                1 
+                                                      Federal Service Information 
+                                                                               42 
+                                                      Finance General Information 
+                                                                                6 
+                                                       FIRE - General Information 
+                                                                               19 
+                                                                 Fire Hydrant Hit 
+                                                                                5 
+                                                         General Snow Information 
+                                                                               88 
+                                                            General Tree Concerns 
+                                                                               36 
+                                                    Giving or Seeking Information 
+                                                                                6 
+                                                                 Golf Information 
+                                                                                2 
+                                                                         Graffiti 
+                                                                                7 
+                                               High Bill or Consumption Questions 
+                                                                              143 
+                                               Howard Park Rec Center Information 
+                                                                                5 
+                                                       HRMS - General Information 
+                                                                              330 
+                                                         IVR Transfer for Payment 
+                                                                             1265 
+                                                                     IVR Troubles 
+                                                                              324 
+                                                            Landlord Registration 
+                                                                               31 
+                                                            Lawn Damage from Plow 
+                                                                               12 
+                                                                     Leaf Pick-Up 
+                                                                               11 
+                                                        Legal General Information 
+                                                                               48 
+                                                   Loose Leaf General Information 
+                                                                             2647 
+                                                                  Loose Leaf Miss 
+                                                                              169 
+                                                               Low Pressure Check 
+                                                                               12 
+                                                         Mailbox Damage from Plow 
+                                                                                1 
+                                               Mayor&#39;s Office General Information 
+                                                                              384 
+                                                              Mayor&#39;s Office News 
+                                                                               34 
+                                                              Mayor&#39;s Office Only 
+                                                                                9 
+                                                                 Mayor&#39;s Schedule 
+                                                                                9 
+                                                                   Meter Exchange 
+                                                                               15 
+                                                   Miscellaneous City Information 
+                                                                              271 
+                                                  Miscellaneous Trash Information 
+                                                                             5491 
+                                                       Missed Extra Trash Pick-Up 
+                                                                               21 
+                                                Missing or Dislodge Manhole Cover 
+                                                                                6 
+                                      Mulch and Compostable Materials Information 
+                                                                              360 
+                                                       NIPSCO General Information 
+                                                                               22 
+                                                          Other Billing Inquiries 
+                                                                             1638 
+                                                               Park Forestry Info 
+                                                                                9 
+                                                               Park Trash Pick Up 
+                                                                                1 
+                                                      Payment Arrangement Inquiry 
+                                                                             1651 
+                                                      Payroll General Information 
+                                                                               10 
+                                                           PKMS - General Concern 
+                                                                               29 
+                                                        PKS - General Information 
+                                                                               83 
+                                                              Plugged Catch Basin 
+                                                                              194 
+                                                        POL - General Information 
+                                                                              162 
+                                                                   Pothole Repair 
+                                                                              430 
+                                                             Program Registration 
+                                                                                1 
+                                                Public Works Personnel Complaints 
+                                                                                2 
+                                                                         Ramshorn 
+                                                                                1 
+                                                       Regular Trash Tote Pick-Up 
+                                                                               83 
+                                   Request to Speak with Mayor&#39;s Office Personnel 
+                                                                              475 
+Resident is Calling to Give Information or Ask for Opinions of the Mayor&#39;s Office 
+                                                                               10 
+                                                           Resident with Hardship 
+                                                                                4 
+                                                            Same Day Missed Trash 
+                                                                             1007 
+ Service Request Update &amp; Service Request Timeframes Anticipated Action Timeframe 
+                                                                                2 
+                                                                     Sewer Backup 
+                                                                               17 
+                                                            Sewer Balance Inquiry 
+                                                                                1 
+                                                       Sewer Basement Backup Plan 
+                                                                               24 
+                                                             Sewer Charge Inquiry 
+                                                                               38 
+                                                                 Sewer Complaints 
+                                                                                1 
+                                                              Sewer Miscellaneous 
+                                                                              426 
+                                                                      Sewer Smell 
+                                                                               19 
+                                                             Shut Off for Non Pay 
+                                                                             1803 
+                                                             Smart Street Inquiry 
+                                                                               44 
+                                                                    Smart Streets 
+                                                                               96 
+                                              South Bend Home Improvement Program 
+                                                                              318 
+                                                    South Bend School Corporation 
+                                                                               14 
+                                                          SRMS - General Concerns 
+                                                                                3 
+                                                           Start Domestic Service 
+                                                                               79 
+                                                       Start Water Service Verify 
+                                                                                1 
+                                                        State Service Information 
+                                                                               77 
+                                                                   Street Cave-In 
+                                                                               11 
+                                                                  Street Flooding 
+                                                                               15 
+                                                              Street Light Outage 
+                                                                              461 
+                                                              Street Needs Plowed 
+                                                                              116 
+                                              Street Painting Request (In Season) 
+                                                                                3 
+                                          Street Painting Request (Out of Season) 
+                                                                               15 
+                                                                    Street Paving 
+                                                                               41 
+                                                                  Street Sweeping 
+                                                                               37 
+                                                     Streets Department Complaint 
+                                                                               59 
+                                                 Streets Department Miscellaneous 
+                                                                              276 
+                                                          Streets General Concern 
+                                                                              180 
+                                                                      Summer Jobs 
+                                                                                1 
+                                                                Supervisor Review 
+                                                                               23 
+                                                     SW - Schedule: Holiday/Delay 
+                                                                              550 
+                                                           SWGC - General Concern 
+                                                                             1194 
+                                                       Terminate Domestic Service 
+                                                                                4 
+                                                             Traffic and Lighting 
+                                                                               30 
+                                                           Traffic Sign Complaint 
+                                                                               56 
+                                                             Traffic Sign Missing 
+                                                                               20 
+                                                         Traffic Signal Complaint 
+                                                                               44 
+                                                       Traffic Signal Maintenance 
+                                                                               24 
+                                                           Traffic Signal Request 
+                                                                                6 
+                                                                    Transfer Call 
+                                                                              407 
+                                                          Trash Container Request 
+                                                                              680 
+                                                             Trash Credit Request 
+                                                                               73 
+                                                               Trash Regular Miss 
+                                                                             1062 
+                                           Trash Was Not Picked By Customer Error 
+                                                                              213 
+                                                          Tree Limbs Hanging Down 
+                                                                               20 
+                                                     Tree Limbs in Tree Lawn Area 
+                                                                               13 
+                                                     Tree or Limb Blocking Street 
+                                                                               17 
+                                                       Tree or Limb Blocking Walk 
+                                                                               13 
+                                       Tree Problem on Vacant or Private Property 
+                                                                                6 
+                                                      Tree Regulation and Permits 
+                                                                               11 
+                                Utility Service Department Hours and Appointments 
+                                                                               17 
+                                                                 Verify Water Off 
+                                                                                1 
+                                                    Water Bill Payment Assistance 
+                                                                              845 
+                                                             Water Leak Insurance 
+                                                                                2 
+                                                   Water Leak Outside/Yard/Street 
+                                                                               98 
+                                                              Water Miscellaneous 
+                                                                             5892 
+                                                          Water Quality Inquiries 
+                                                                               47 
+                                                               Website Assistance 
+                                                                              118 
+                                                                         Wildlife 
+                                                                               14 
+                                                              WW - Address Change 
+                                                                                1 
+                                                                   WW - Extension 
+                                                                                8 
+                                                WW Customer Inquiry following IVR 
+                                                                              310 
+                                                          WWGC - General Concerns 
+                                                                              166 
+                                                      Yard Waste Container Repair 
+                                                                                4 
+                                                     Yard Waste Container Request 
+                                                                              503 
+                                                                Yard Waste Missed 
+                                                                              387 
+                                                          Yard Waste Tote Pick Up 
+                                                                              169 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Remove dirty entries</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>phone_calls <span class="ot">&lt;-</span> phone_calls <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Called_About =</span> <span class="fu">ifelse</span>(</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    Called_About <span class="sc">==</span> <span class="st">&quot;*No Article Found*&quot;</span>,</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;General City Inquiry&quot;</span>,</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    Called_About</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="tab-2--" class="level2">
+<h2 class="anchored" data-anchor-id="tab-2--">Tab 2 -</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Make facilities spatial</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>facilities_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(public_facilities, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="do">## 3857 transformation for distance calculations</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>facilities_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(facilities_sf, <span class="dv">3857</span>)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>census_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(census_2020, <span class="dv">3857</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="tab-3--" class="level2">
+<h2 class="anchored" data-anchor-id="tab-3--">Tab 3 -</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Check states</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(businesses<span class="sc">$</span>State)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+            AR             AZ             CA             CO             CT 
+             6              2              5              1              1 
+            FL              G             GA              i             Ia 
+            10              1              9              1              1 
+            IA             ID             IL             in             In 
+             1              4             24              1              1 
+            IN             KS             KY             LA             MA 
+          3054              2              5              4              3 
+            MI             MN             MO             MS             NC 
+            65              2              8              2              4 
+            NE             NJ             NY             OH             OR 
+             1              7             11             29              3 
+            PA People - State             SC             TN             TX 
+            18              3              3             11             12 
+            UT             WA             WI 
+            21              4              2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Two South Bend entries have &quot;i&quot; or &quot;Ia&quot; for state - clean it</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>businesses <span class="ot">&lt;-</span> businesses <span class="sc">%&gt;%</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">State =</span> <span class="fu">ifelse</span>(State <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;i&quot;</span>, <span class="st">&quot;Ia&quot;</span>), <span class="st">&quot;IN&quot;</span>, State))</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="do">## Check state entries</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(businesses<span class="sc">$</span>State)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+            AR             AZ             CA             CO             CT 
+             6              2              5              1              1 
+            FL              G             GA             IA             ID 
+            10              1              9              1              4 
+            IL             in             In             IN             KS 
+            24              1              1           3056              2 
+            KY             LA             MA             MI             MN 
+             5              4              3             65              2 
+            MO             MS             NC             NE             NJ 
+             8              2              4              1              7 
+            NY             OH             OR             PA People - State 
+            11             29              3             18              3 
+            SC             TN             TX             UT             WA 
+             3             11             12             21              4 
+            WI 
+             2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Mutate the states so they are all upper case</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>businesses <span class="ot">&lt;-</span> businesses<span class="sc">%&gt;%</span><span class="fu">mutate</span>(<span class="at">State=</span><span class="fu">toupper</span>(State))</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Grab the Indiana businesses</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>businesses_indiana <span class="ot">&lt;-</span> businesses<span class="sc">%&gt;%</span><span class="fu">filter</span>(State<span class="sc">==</span><span class="st">&quot;IN&quot;</span>)</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at the statuses and group them as appropriate</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(businesses_indiana<span class="sc">$</span>Status)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+   ABT2EXP     ACTIVE     CLOSED     DENIED    EXPIRED  IN REVIEW   INACTIVE 
+         7        537         79          3        191          4        144 
+READY2ISSU    RENEWED  SUBMITTED 
+       156       1935          2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>businesses_indiana <span class="ot">&lt;-</span> businesses_indiana<span class="sc">%&gt;%</span><span class="fu">mutate</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">status_group =</span> <span class="fu">case_when</span>(</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>      Status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;ACTIVE&quot;</span>, <span class="st">&quot;RENEWED&quot;</span>, <span class="st">&quot;READY2ISSU&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Safe&quot;</span>,</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>      Status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;CLOSED&quot;</span>, <span class="st">&quot;DENIED&quot;</span>, <span class="st">&quot;EXPIRED&quot;</span>, <span class="st">&quot;INACTIVE&quot;</span>, <span class="st">&quot;ABT2EXP&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Expired&quot;</span>,</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>      Status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;IN REVIEW&quot;</span>, <span class="st">&quot;SUBMITTED&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Pending&quot;</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Get rid of duplicates at the same address and license type</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>businesses_indiana_unique <span class="ot">&lt;-</span> businesses_indiana <span class="sc">%&gt;%</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="st">`</span><span class="at">License Type</span><span class="st">`</span>, <span class="st">`</span><span class="at">Street Address</span><span class="st">`</span>, City, State, <span class="st">`</span><span class="at">Zip Code</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(year)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a><span class="do">## Make a new variable for geocoding</span></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>businesses_indiana_unique <span class="ot">&lt;-</span> businesses_indiana_unique<span class="sc">%&gt;%</span><span class="fu">mutate</span>(<span class="at">Full_Address=</span><span class="fu">paste</span>(<span class="st">`</span><span class="at">Street Address</span><span class="st">`</span>, City, State, <span class="st">`</span><span class="at">Zip Code</span><span class="st">`</span>, <span class="at">sep=</span><span class="st">&quot;, &quot;</span>))</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a><span class="do">## Geocoding</span></span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a><span class="fu">register_google</span>(<span class="at">key =</span> <span class="st">&quot;AIzaSyCGJDAZrfvRVKiVoqKkeHa8fPsr2kqP02E&quot;</span>)</span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>businesses_indiana_geocode <span class="ot">&lt;-</span> <span class="fu">suppressMessages</span>(</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>  businesses_indiana_unique <span class="sc">%&gt;%</span> </span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_geocode</span>(Full_Address, <span class="at">output=</span><span class="st">&quot;more&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;11918 Exit 5 Park...&quot; not uniquely geocoded, using &quot;greenwood, in
+46143, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;5355 E 38th St, S...&quot; not uniquely geocoded, using &quot;5355 e 38th st,
+indianapolis, in 46218, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1709 LINCOLN WAY,...&quot; not uniquely geocoded, using &quot;1709 lincoln way w, south
+bend, in 46628, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1709 LINCOLN WAY,...&quot; not uniquely geocoded, using &quot;1709 lincoln wy,
+mishawaka, in 46544, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;4849 W WESTERN A...&quot; not uniquely geocoded, using &quot;4849 w western ave, south
+bend, in 46619, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;6139 PARKLAND D...&quot; not uniquely geocoded, using &quot;6139 parkland dr, south
+bend, in 46628, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;6139 PARKLAND DR,...&quot; not uniquely geocoded, using &quot;6139 parkland dr, south
+bend, in 46628, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;6013 US 31, SOU...&quot; not uniquely geocoded, using &quot;us-31, south bend, in 46614,
+usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;6013 US 31, SOUTH...&quot; not uniquely geocoded, using &quot;us-31, south bend, in
+46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;24725 Trunk Trl, ...&quot; not uniquely geocoded, using &quot;24725 trunk trl, south
+bend, in 46619, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1072 LINCOLN WA...&quot; not uniquely geocoded, using &quot;1072 lincoln hwy, plymouth,
+in 46563, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;123 N MAIN ST, SO...&quot; not uniquely geocoded, using &quot;123 n main st, south bend,
+in 46601, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1105 NORTHSIDE ...&quot; not uniquely geocoded, using &quot;1105 northside blvd,
+nappanee, in 46550, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1105 NORTHSIDE ...&quot; not uniquely geocoded, using &quot;shipshewana, in
+46565, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1519 N IRONWOOD ...&quot; not uniquely geocoded, using &quot;1519 n ironwood dr, south
+bend, in 46613, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;315 W IRELAND RD...&quot; not uniquely geocoded, using &quot;315 w ireland rd, south
+bend, in 46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;315 W IRELAND RD,...&quot; not uniquely geocoded, using &quot;315 w ireland rd, south
+bend, in 46614, usa&quot;
+&quot;315 W IRELAND RD,...&quot; not uniquely geocoded, using &quot;315 w ireland rd, south
+bend, in 46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;315 W. Ireland Rd...&quot; not uniquely geocoded, using &quot;315 w ireland rd, south
+bend, in 46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;3627 MCKINLEY AVE...&quot; not uniquely geocoded, using &quot;bremen, in 46506,
+usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;4402 S MICHIGAN ...&quot; not uniquely geocoded, using &quot;michigan city, in 46361,
+usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;525 N EDDY ST, S...&quot; not uniquely geocoded, using &quot;525 n eddy st, south bend,
+in 46617, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;525 N EDDY ST, SO...&quot; not uniquely geocoded, using &quot;525 n eddy st, south bend,
+in 46617, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;525 N. Eddy St., ...&quot; not uniquely geocoded, using &quot;525 n eddy st, south bend,
+in 46617, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;6220 MICHIGAN ST,...&quot; not uniquely geocoded, using &quot;6220 s michigan st, south
+bend, in 46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;6301 US 31 S, Sou...&quot; not uniquely geocoded, using &quot;us-31, south bend, in
+46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1102 S FELLOWS ST...&quot; not uniquely geocoded, using &quot;1102 fellows st, south
+bend, in 46601, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;117 E WAYNE ST, S...&quot; not uniquely geocoded, using &quot;117 e wayne st s, south
+bend, in 46601, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;2051 E IRELAND R...&quot; not uniquely geocoded, using &quot;2051 e ireland rd, south
+bend, in 46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;4106 LINCOLN WAY ...&quot; not uniquely geocoded, using &quot;4106 lincoln hwy,
+valparaiso, in 46385, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;560 W IRELAND RD...&quot; not uniquely geocoded, using &quot;297 w franciscan dr # 101,
+crown point, in 46307, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;1072 LINCOLN WA...&quot; not uniquely geocoded, using &quot;1072 lincoln hwy, plymouth,
+in 46563, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;825 S FELLOWS ST,...&quot; not uniquely geocoded, using &quot;825 fellows st, south
+bend, in 46601, usa&quot;
+&quot;825 S FELLOWS ST,...&quot; not uniquely geocoded, using &quot;825 fellows st, south
+bend, in 46601, usa&quot;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert to sf</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>businesses_indiana_sf <span class="ot">&lt;-</span> businesses_indiana_geocode <span class="sc">%&gt;%</span> <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;lon&quot;</span>, <span class="st">&quot;lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Add a city council district to each business</span></span>
+<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>city_council_districts <span class="ot">&lt;-</span> city_council_districts <span class="sc">%&gt;%</span> <span class="fu">st_make_valid</span>()</span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts <span class="ot">&lt;-</span> <span class="fu">st_join</span>(businesses_indiana_sf, city_council_districts<span class="sc">%&gt;%</span><span class="fu">select</span>(Num))</span>
+<span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Add &quot;Other&quot; for addresses not in a district</span></span>
+<span id="cb75-10"><a href="#cb75-10" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts<span class="sc">$</span>District <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(</span>
+<span id="cb75-11"><a href="#cb75-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">is.na</span>(businesses_indiana_districts<span class="sc">$</span>Num),</span>
+<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;Other Districts&quot;</span>,</span>
+<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="st">&quot;District&quot;</span>, businesses_indiana_districts<span class="sc">$</span>Num)</span>
+<span id="cb75-14"><a href="#cb75-14" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="tab-4---schoolpark-routes-with-lights" class="level2">
+<h2 class="anchored" data-anchor-id="tab-4---schoolpark-routes-with-lights">Tab 4 - School/Park Routes with Lights</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at park types</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(parks<span class="sc">$</span>Park_Type)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+       Block Park          Cemetery    Community Park       Golf Course 
+               16                 2                13                 4 
+         Memorial Neighborhood Park           Special               Zoo 
+                1                24                 1                 1 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Get the &quot;kid friendly&quot; parks - no cemeteries or golf courses, etc.</span></span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>kid_friendly_types <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Block Park&quot;</span>, <span class="st">&quot;Community Park&quot;</span>, <span class="st">&quot;Neighborhood Park&quot;</span>)</span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Decide whether or not a park is kid friendly</span></span>
+<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>parks<span class="sc">$</span>Park_Type_Kid_Friendly <span class="ot">&lt;-</span> parks<span class="sc">$</span>Park_Type <span class="sc">%in%</span> kid_friendly_types</span>
+<span id="cb78-6"><a href="#cb78-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at lumens values</span></span>
+<span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(street_lights<span class="sc">$</span>Lumens)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+             50000               9500  C - 25,500 Lumens         D - 50,000 
+                30                  2                 26                  1 
+ D - 50,000 Lumens D - 50,0000 Lumens   D- 50,000 Lumens   K - 9,500 Lumens 
+              1037                  1                  1               6704 
+          K- 9,500    K- 9,500 Lumens   K- 9,5000 Lumens     K-1,000 Lumens 
+                 3                  1                  1                  1 
+          K-22,000            k-9,500            K-9,500     K-9,500 Lumens 
+                 2                  1                 37                 10 
+          K-9,500L  L - 20,000 Lumens  S - 20,000 Lumens  S - 22,000 Lumens 
+                 8                 18                  1               1742 
+        S- 22,000L           S-22,000    S-22,000 Lumens            Unknown 
+                 1                 39                  1               1897 
+  V - 7,000 Lumens   X - 1,000 Lumens     X-1,000 Lumens 
+                 1                155                 15 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Clean lumens values so they are all numeric</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>street_lights <span class="ot">&lt;-</span> street_lights <span class="sc">%&gt;%</span></span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">lumens_numeric =</span> <span class="fu">str_extract</span>(Lumens, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">d+[</span><span class="sc">\\</span><span class="st">d,]*&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_replace_all</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as.numeric</span>()</span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Route buffer for either side of the osrm route in meters</span></span>
+<span id="cb80-10"><a href="#cb80-10" aria-hidden="true" tabindex="-1"></a>route_buffer_meters <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb80-11"><a href="#cb80-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-12"><a href="#cb80-12" aria-hidden="true" tabindex="-1"></a><span class="do">## Make parks and street lights spatial</span></span>
+<span id="cb80-13"><a href="#cb80-13" aria-hidden="true" tabindex="-1"></a>parks_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(parks, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb80-14"><a href="#cb80-14" aria-hidden="true" tabindex="-1"></a>street_lights_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(street_lights, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb80-15"><a href="#cb80-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-16"><a href="#cb80-16" aria-hidden="true" tabindex="-1"></a><span class="do">## 3857 transformation for distance calculations</span></span>
+<span id="cb80-17"><a href="#cb80-17" aria-hidden="true" tabindex="-1"></a>parks_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(parks_sf, <span class="dv">3857</span>)</span>
+<span id="cb80-18"><a href="#cb80-18" aria-hidden="true" tabindex="-1"></a>street_lights_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(street_lights_sf, <span class="dv">3857</span>)</span>
+<span id="cb80-19"><a href="#cb80-19" aria-hidden="true" tabindex="-1"></a>school_boundaries_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(school_boundaries, <span class="dv">3857</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 
