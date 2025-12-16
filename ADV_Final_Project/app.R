@@ -45,9 +45,25 @@ ui <- fluidPage(
       ),
       mainPanel(
         h4("Top Call Types"),
-        verbatimTextOutput("call_summary"),
-        plotOutput("call_plot")
+        plotOutput("call_plot"),
+        
+        hr(),  # optional separator
+        
+        fluidRow(
+          column(
+            width = 6,
+            h4("Calls by Month"),
+            tableOutput("month_table")
+          ),
+          column(
+            width = 6,
+            h4("Top Departments"),
+            tableOutput("department_table")
+          )
+        )
       )
+      
+      
     )),
     
     ## Emergency Service Coverage
@@ -197,32 +213,95 @@ server <- function(input, output, session) {
     )
     
   })
+
   
-  ## Graphical output
   output$call_plot <- renderPlot({
     df <- selected_call_dates()
+    
+    # --- Top 5 called-about ---
     top_calls <- df %>%
       count(Called_About, sort = TRUE) %>%
       head(5)
     
+    # --- Calls by month ---
+    month_counts <- df %>%
+      mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
+      count(Month) %>%
+      arrange(desc(n))  # sort descending by number of calls
+    
+    # Convert Month to factor in order of descending count, with most calls on top
+    month_counts$Month <- factor(month_counts$Month, levels = rev(month_counts$Month))
+    
+    # --- Top 5 departments ---
     top_departments <- df %>%
       count(Department, sort = TRUE) %>%
       head(5)
     
+    # Determine max y across all plots for consistent axis
+    max_calls <- max(
+      max(top_calls$n, na.rm = TRUE),
+      max(month_counts$n, na.rm = TRUE),
+      max(top_departments$n, na.rm = TRUE)
+    )
+    
+    # --- Plots ---
     call_plot <- ggplot(top_calls, aes(x = reorder(Called_About, n), y = n)) +
-      geom_col() +
+      geom_col(fill = "steelblue") +
       coord_flip() +
+      ylim(0, max_calls) +
       labs(title = "Top Call Types", x = "", y = "Number of Calls") +
       theme(axis.text.y = element_text(angle = 45, hjust = 1))
-    department_plot <- ggplot(top_departments, aes(x = reorder(Department, n), y = n)) +
-      geom_col() +
+    
+    month_plot <- ggplot(month_counts, aes(x = Month, y = n)) +
+      geom_col(fill = "orange") +
       coord_flip() +
+      ylim(0, max_calls) +
+      labs(title = "Calls by Month", x = "", y = "Number of Calls") +
+      theme(axis.text.y = element_text(hjust = 1))
+    
+    department_plot <- ggplot(top_departments, aes(x = reorder(Department, n), y = n)) +
+      geom_col(fill = "forestgreen") +
+      coord_flip() +
+      ylim(0, max_calls) +
       labs(title = "Top Departments", x = "", y = "Number of Calls") +
       theme(axis.text.y = element_text(angle = 45, hjust = 1))
     
-    ## Use patchwork library to plot the<- together
-    call_plot / department_plot
+    # --- Combine plots ---
+    call_plot / month_plot / department_plot
   })
+  
+  # --- Calls by Month table ---
+  output$month_table <- renderTable({
+    df <- selected_call_dates()
+    
+    df %>%
+      mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
+      count(Month) %>%
+      arrange(desc(n)) %>%
+      rename("Month" = Month, "Number of Calls" = n)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
+  # --- Top Departments table ---
+  output$department_table <- renderTable({
+    df <- selected_call_dates()
+    
+    df %>%
+      count(Department, sort = TRUE) %>%
+      head(5) %>%
+      rename("Department" = Department, "Number of Calls" = n)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
 ## -----------------------------------------------------------------
   
