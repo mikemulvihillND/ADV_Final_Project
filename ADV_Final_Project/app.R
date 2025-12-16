@@ -38,7 +38,9 @@ ui <- fluidPage(
             phone_calls$Department
           ))),
           selected = "ALL"
-        )
+        ),
+        actionButton("reset_calls", "Reset Filters", icon = icon("redo"))
+        
         
       ),
       mainPanel(
@@ -151,6 +153,21 @@ server <- function(input, output, session) {
     }
     phone_calls_filtered
   })
+  
+  observeEvent(input$reset_calls, {
+    # Reset date range to full range
+    updateDateRangeInput(session,
+                         "call_dates",
+                         start = min(phone_calls$Call_Date),
+                         end   = max(phone_calls$Call_Date))
+    
+    # Clear month checkboxes
+    updateCheckboxGroupInput(session, "call_months", selected = character(0))
+    
+    # Reset department to "ALL"
+    updateSelectInput(session, "call_departments", selected = "ALL")
+  })
+  
   
   ## Output user filtered top calls
   output$call_summary <- renderText({
