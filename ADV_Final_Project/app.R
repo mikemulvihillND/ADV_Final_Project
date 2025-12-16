@@ -5,6 +5,7 @@ suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
 suppressPackageStartupMessages(library(patchwork))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(rsconnect))
 options(warn = -1)
 
 ## Load necessary data
@@ -178,7 +179,7 @@ server <- function(input, output, session) {
     }
     else{
       phone_calls_filtered <- phone_calls %>% filter(Call_Date >= as.POSIXct(input$call_dates[1]) &
-                                                       Call_Date <= as.POSIXct((input$call_dates[2])))
+                                                       Call_Date <= as.POSIXct((input$call_dates[2] + 1)))
     }
     
     if (!is.null(input$call_departments) &&
