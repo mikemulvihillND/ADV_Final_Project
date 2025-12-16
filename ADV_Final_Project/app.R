@@ -4,7 +4,22 @@ suppressPackageStartupMessages(library(sf))
 suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
 suppressPackageStartupMessages(library(patchwork))
+suppressPackageStartupMessages(library(ggplot2))
 options(warn = -1)
+
+## Load necessary data
+phone_calls <- readRDS("data/phone_calls.rds")
+facilities_3857 <- readRDS("data/facilities_3857.rds")
+census_3857 <- readRDS("data/census_3857.rds")
+districts_sf <- readRDS("data/districts_sf.rds")
+businesses_indiana_districts <- readRDS("data/businesses_indiana_districts.rds")
+school_boundaries_3857 <- readRDS("data/school_boundaries_3857.rds")
+parks_3857 <- readRDS("data/parks_3857.rds")
+street_lights_3857 <- readRDS("data/street_lights_3857.rds")
+all_routes_nested <- readRDS("data/school_park_routes.rds")
+
+meters_to_sq_miles <- 3.861e-7
+meters_to_miles <- 1609.34
 
 ## Overall fluid page
 ui <- fluidPage(
@@ -122,7 +137,7 @@ ui <- fluidPage(
       "Street Lights between Schools and Parks",
       sidebarLayout(
         sidebarPanel(
-          selectInput("school", "Select a School:", choices = school_boundaries$School),
+          selectInput("school", "Select a School:", choices = school_boundaries_3857$School),
           ## Parks will dynamically update depending on school selected
           ## and the walking radius
           selectInput("park", "Select a Park:", choices = NULL),
@@ -786,7 +801,6 @@ server <- function(input, output, session) {
       filter(Park_Name == input$park)
   })
   
-  
   ## Walking route
   ## tryCatch for same purpose as above
   route <- reactive({
@@ -795,12 +809,17 @@ server <- function(input, output, session) {
       return(NULL)
     
     tryCatch({
-      osrmRoute(src = st_transform(school_point(), 4326),
-                dst = st_transform(park, 4326)) %>%
+      osrmRoute(
+        src = st_transform(school_point(), 4326),
+        dst = st_transform(park, 4326),
+        server = "https://router.project-osrm.org/",
+        profile = "foot"
+      ) %>%
         st_transform(3857)
-    }, error = function(e)
-      NULL)
+    }, error = function(e) NULL)
   })
+  
+  
   
   ## Buffer route with margin of error defined in QMD
   ## tryCatch in case route does not exist
