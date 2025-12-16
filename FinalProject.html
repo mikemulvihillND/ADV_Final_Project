@@ -4200,7 +4200,7 @@ READY2ISSU    RENEWED  SUBMITTED
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>      Status <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;IN REVIEW&quot;</span>, <span class="st">&quot;SUBMITTED&quot;</span>) <span class="sc">~</span> <span class="st">&quot;Pending&quot;</span></span>
 <span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    ))</span>
 <span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Get rid of duplicates at the same address and license type</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Get rid of duplicates at the same address and license type for geocoding</span></span>
 <span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>businesses_indiana_unique <span class="ot">&lt;-</span> businesses_indiana <span class="sc">%&gt;%</span></span>
 <span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="st">`</span><span class="at">License Type</span><span class="st">`</span>, <span class="st">`</span><span class="at">Street Address</span><span class="st">`</span>, City, State, <span class="st">`</span><span class="at">Zip Code</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(year)) <span class="sc">%&gt;%</span></span>

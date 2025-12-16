@@ -30,7 +30,14 @@ ui <- fluidPage(
             lubridate::month(phone_calls$Call_Date, label = TRUE, abbr = FALSE)
           )),
           selected = NULL
-        )
+        ),
+        selectInput(
+          "call_departments",
+          "And/Or Select Specific Departments:",
+          choices = c("All Departments" = "ALL", sort(unique(phone_calls$Department))),
+          selected = "ALL"
+          )
+        
       ),
       mainPanel(
         h4("Top Call Types"),
@@ -127,6 +134,11 @@ server <- function(input, output, session) {
     else{
       phone_calls_filtered <- phone_calls %>% filter(Call_Date >= as.POSIXct(input$call_dates[1]) &
                                                        Call_Date <= as.POSIXct((input$call_dates[2])))
+    }
+    
+    if (!is.null(input$call_departments) && !"ALL" %in% input$call_departments) {
+      phone_calls_filtered <- phone_calls_filtered %>%
+        filter(Department %in% input$call_departments)
     }
     phone_calls_filtered
   })
