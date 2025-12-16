@@ -86,11 +86,13 @@ ui <- fluidPage(
             unique(businesses_indiana_districts$District)
           ))
         ),
-        uiOutput("license_type_ui")
+        uiOutput("license_type_ui"),
+        actionButton("reset_filters", "Reset Filters", icon=icon("redo"))
       ),
       mainPanel(
         h4("License Status Summary"),
         leafletOutput("license_map"),
+        uiOutput("license_summary_title"),
         tableOutput("license_summary")
         
       )
@@ -335,6 +337,31 @@ server <- function(input, output, session) {
     }
   })
   
+  # In server:
+  observeEvent(input$reset_filters, {
+    # Reset district and license dropdowns
+    updateSelectInput(session, "district", selected = "All Districts")
+    updateSelectInput(session, "expired_business", selected = "All Expired")
+    
+    # Reset reactive value
+    selected_district("All Districts")
+    
+    # Reset map highlight and view
+    leafletProxy("license_map") %>%
+      clearGroup("highlight") %>%
+      addPolygons(
+        data = districts_sf,
+        color = "black",
+        weight = 2,
+        fillOpacity = 0.1,
+        label = ~ paste("District", Num),
+        group = "highlight"
+      ) %>%
+      setView(lng = -86.25, lat = 41.68, zoom = 12)
+  })
+  
+  
+  
   ## Reactive values to track last click, allows for deselecting click
   click_tracker <- reactiveValues(last_id = NULL, last_time = Sys.time())
   
@@ -511,6 +538,13 @@ server <- function(input, output, session) {
       selected = "All Expired"
     )
   })
+  
+  output$license_summary_title <- renderUI({
+    district_name <- selected_district()
+    if (is.null(district_name)) district_name <- "All Districts"
+    h4(paste("License Status Summary -", district_name))
+  })
+  
   
   ## Update map markers based on expired license selection
   observe({
