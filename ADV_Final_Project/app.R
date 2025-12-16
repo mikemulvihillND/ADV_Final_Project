@@ -809,13 +809,15 @@ server <- function(input, output, session) {
       return(NULL)
     
     tryCatch({
-      osrmRoute(
-        src = st_transform(school_point(), 4326),
-        dst = st_transform(park, 4326),
-        server = "https://router.project-osrm.org/",
-        profile = "foot"
-      ) %>%
+      all_routes_nested[[input$school]][[input$park]]$route %>%
         st_transform(3857)
+      # osrmRoute(
+      #   src = st_transform(school_point(), 4326),
+      #   dst = st_transform(park, 4326),
+      #   server = "https://router.project-osrm.org/",
+      #   profile = "foot"
+      # ) %>%
+      #   st_transform(3857)
     }, error = function(e) NULL)
   })
   
@@ -825,6 +827,8 @@ server <- function(input, output, session) {
   ## tryCatch in case route does not exist
   route_buffer <- reactive({
     r <- route()
+    route_buffer_meters <- input$radius_miles * meters_to_miles
+    
     if (is.null(r))
       return(NULL)
     
@@ -837,13 +841,18 @@ server <- function(input, output, session) {
   
   ## Street lights along route
   route_lights <- reactive({
-    buf <- route_buffer()
-    if (is.null(buf))
+    r <- route()
+    if (is.null(r))
       return(NULL)
     
+    tolerance_m <- 100  # meters from the route line
+    
     street_lights_3857 %>%
-      st_intersection(buf)
+      filter(
+        as.numeric(st_distance(geometry, r)) <= tolerance_m
+      )
   })
+  
   
   
   ## Stats output table
