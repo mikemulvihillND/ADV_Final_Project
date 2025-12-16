@@ -160,6 +160,10 @@ businesses_indiana_districts$District <- ifelse(
   "Other Districts",
   paste("District", businesses_indiana_districts$Num)
 )
+
+businesses_indiana_districts <- businesses_indiana_districts %>% filter(Num %in% 1:6)
+
+districts_sf <- st_transform(city_council_districts, 4326)
 ```
 
 ## Tab 4 - School/Park Routes with Lights

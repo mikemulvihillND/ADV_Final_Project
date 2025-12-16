@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Darien Geyen, Austin Lee, Michael Mulvihill, Zach Stabrowski">
-<meta name="dcterms.date" content="2025-12-14">
+<meta name="dcterms.date" content="2025-12-15">
 
 <title>ADV Final Project</title>
 <style>
@@ -3485,7 +3485,7 @@ window.onload = function() {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">December 14, 2025</p>
+      <p class="date">December 15, 2025</p>
     </div>
   </div>
   
@@ -4226,6 +4226,10 @@ READY2ISSU    RENEWED  SUBMITTED
 indianapolis, in 46218, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;202 S OLIVE ST, ...&quot; not uniquely geocoded, using &quot;202 s olive st, south bend,
+in 46619, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
 <pre><code>Warning: &quot;1709 LINCOLN WAY,...&quot; not uniquely geocoded, using &quot;1709 lincoln way w, south
 bend, in 46628, usa&quot;</code></pre>
 </div>
@@ -4258,12 +4262,12 @@ usa&quot;</code></pre>
 bend, in 46619, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: &quot;1072 LINCOLN WA...&quot; not uniquely geocoded, using &quot;1072 lincoln hwy, plymouth,
-in 46563, usa&quot;</code></pre>
+<pre><code>Warning: &quot;1866 W. Meade St....&quot; not uniquely geocoded, using &quot;1866 n meade st, south
+bend, in 46628, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: &quot;123 N MAIN ST, SO...&quot; not uniquely geocoded, using &quot;123 n main st, south bend,
-in 46601, usa&quot;</code></pre>
+<pre><code>Warning: &quot;1072 LINCOLN WA...&quot; not uniquely geocoded, using &quot;1072 lincoln hwy, plymouth,
+in 46563, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: &quot;1105 NORTHSIDE ...&quot; not uniquely geocoded, using &quot;1105 northside blvd,
@@ -4324,7 +4328,7 @@ bend, in 46614, usa&quot;</code></pre>
 bend, in 46601, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: &quot;117 E WAYNE ST, S...&quot; not uniquely geocoded, using &quot;117 e wayne st s, south
+<pre><code>Warning: &quot;117 E WAYNE ST, S...&quot; not uniquely geocoded, using &quot;117 e wayne st, south
 bend, in 46601, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
@@ -4344,32 +4348,40 @@ crown point, in 46307, usa&quot;</code></pre>
 in 46563, usa&quot;</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
+<pre><code>Warning: &quot;62430 Locust Rd, ...&quot; not uniquely geocoded, using &quot;62430 locust rd #146,
+south bend, in 46614, usa&quot;</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
 <pre><code>Warning: &quot;825 S FELLOWS ST,...&quot; not uniquely geocoded, using &quot;825 fellows st, south
 bend, in 46601, usa&quot;
 &quot;825 S FELLOWS ST,...&quot; not uniquely geocoded, using &quot;825 fellows st, south
 bend, in 46601, usa&quot;</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert to sf</span></span>
-<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>businesses_indiana_sf <span class="ot">&lt;-</span> businesses_indiana_geocode <span class="sc">%&gt;%</span> <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;lon&quot;</span>, <span class="st">&quot;lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
-<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Add a city council district to each business</span></span>
-<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>city_council_districts <span class="ot">&lt;-</span> city_council_districts <span class="sc">%&gt;%</span> <span class="fu">st_make_valid</span>()</span>
-<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts <span class="ot">&lt;-</span> <span class="fu">st_join</span>(businesses_indiana_sf, city_council_districts<span class="sc">%&gt;%</span><span class="fu">select</span>(Num))</span>
-<span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Add &quot;Other&quot; for addresses not in a district</span></span>
-<span id="cb75-10"><a href="#cb75-10" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts<span class="sc">$</span>District <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(</span>
-<span id="cb75-11"><a href="#cb75-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">is.na</span>(businesses_indiana_districts<span class="sc">$</span>Num),</span>
-<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;Other Districts&quot;</span>,</span>
-<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="st">&quot;District&quot;</span>, businesses_indiana_districts<span class="sc">$</span>Num)</span>
-<span id="cb75-14"><a href="#cb75-14" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert to sf</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>businesses_indiana_sf <span class="ot">&lt;-</span> businesses_indiana_geocode <span class="sc">%&gt;%</span> <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;lon&quot;</span>, <span class="st">&quot;lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Add a city council district to each business</span></span>
+<span id="cb77-5"><a href="#cb77-5" aria-hidden="true" tabindex="-1"></a>city_council_districts <span class="ot">&lt;-</span> city_council_districts <span class="sc">%&gt;%</span> <span class="fu">st_make_valid</span>()</span>
+<span id="cb77-6"><a href="#cb77-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-7"><a href="#cb77-7" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts <span class="ot">&lt;-</span> <span class="fu">st_join</span>(businesses_indiana_sf, city_council_districts<span class="sc">%&gt;%</span><span class="fu">select</span>(Num))</span>
+<span id="cb77-8"><a href="#cb77-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-9"><a href="#cb77-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Add &quot;Other&quot; for addresses not in a district</span></span>
+<span id="cb77-10"><a href="#cb77-10" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts<span class="sc">$</span>District <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(</span>
+<span id="cb77-11"><a href="#cb77-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">is.na</span>(businesses_indiana_districts<span class="sc">$</span>Num),</span>
+<span id="cb77-12"><a href="#cb77-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;Other Districts&quot;</span>,</span>
+<span id="cb77-13"><a href="#cb77-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="st">&quot;District&quot;</span>, businesses_indiana_districts<span class="sc">$</span>Num)</span>
+<span id="cb77-14"><a href="#cb77-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb77-15"><a href="#cb77-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-16"><a href="#cb77-16" aria-hidden="true" tabindex="-1"></a>businesses_indiana_districts <span class="ot">&lt;-</span> businesses_indiana_districts <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Num <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>)</span>
+<span id="cb77-17"><a href="#cb77-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-18"><a href="#cb77-18" aria-hidden="true" tabindex="-1"></a>districts_sf <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(city_council_districts, <span class="dv">4326</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="tab-4---schoolpark-routes-with-lights" class="level2">
 <h2 class="anchored" data-anchor-id="tab-4---schoolpark-routes-with-lights">Tab 4 - School/Park Routes with Lights</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at park types</span></span>
-<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(parks<span class="sc">$</span>Park_Type)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at park types</span></span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(parks<span class="sc">$</span>Park_Type)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
        Block Park          Cemetery    Community Park       Golf Course 
@@ -4377,14 +4389,14 @@ bend, in 46601, usa&quot;</code></pre>
          Memorial Neighborhood Park           Special               Zoo 
                 1                24                 1                 1 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Get the &quot;kid friendly&quot; parks - no cemeteries or golf courses, etc.</span></span>
-<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>kid_friendly_types <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Block Park&quot;</span>, <span class="st">&quot;Community Park&quot;</span>, <span class="st">&quot;Neighborhood Park&quot;</span>)</span>
-<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Decide whether or not a park is kid friendly</span></span>
-<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>parks<span class="sc">$</span>Park_Type_Kid_Friendly <span class="ot">&lt;-</span> parks<span class="sc">$</span>Park_Type <span class="sc">%in%</span> kid_friendly_types</span>
-<span id="cb78-6"><a href="#cb78-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at lumens values</span></span>
-<span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(street_lights<span class="sc">$</span>Lumens)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Get the &quot;kid friendly&quot; parks - no cemeteries or golf courses, etc.</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>kid_friendly_types <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Block Park&quot;</span>, <span class="st">&quot;Community Park&quot;</span>, <span class="st">&quot;Neighborhood Park&quot;</span>)</span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Decide whether or not a park is kid friendly</span></span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>parks<span class="sc">$</span>Park_Type_Kid_Friendly <span class="ot">&lt;-</span> parks<span class="sc">$</span>Park_Type <span class="sc">%in%</span> kid_friendly_types</span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a><span class="do">## Look at lumens values</span></span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(street_lights<span class="sc">$</span>Lumens)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
              50000               9500  C - 25,500 Lumens         D - 50,000 
@@ -4402,25 +4414,25 @@ bend, in 46601, usa&quot;</code></pre>
   V - 7,000 Lumens   X - 1,000 Lumens     X-1,000 Lumens 
                  1                155                 15 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Clean lumens values so they are all numeric</span></span>
-<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>street_lights <span class="ot">&lt;-</span> street_lights <span class="sc">%&gt;%</span></span>
-<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">lumens_numeric =</span> <span class="fu">str_extract</span>(Lumens, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">d+[</span><span class="sc">\\</span><span class="st">d,]*&quot;</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_replace_all</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;&quot;</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as.numeric</span>()</span>
-<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Route buffer for either side of the osrm route in meters</span></span>
-<span id="cb80-10"><a href="#cb80-10" aria-hidden="true" tabindex="-1"></a>route_buffer_meters <span class="ot">&lt;-</span> <span class="dv">100</span></span>
-<span id="cb80-11"><a href="#cb80-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb80-12"><a href="#cb80-12" aria-hidden="true" tabindex="-1"></a><span class="do">## Make parks and street lights spatial</span></span>
-<span id="cb80-13"><a href="#cb80-13" aria-hidden="true" tabindex="-1"></a>parks_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(parks, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
-<span id="cb80-14"><a href="#cb80-14" aria-hidden="true" tabindex="-1"></a>street_lights_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(street_lights, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
-<span id="cb80-15"><a href="#cb80-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb80-16"><a href="#cb80-16" aria-hidden="true" tabindex="-1"></a><span class="do">## 3857 transformation for distance calculations</span></span>
-<span id="cb80-17"><a href="#cb80-17" aria-hidden="true" tabindex="-1"></a>parks_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(parks_sf, <span class="dv">3857</span>)</span>
-<span id="cb80-18"><a href="#cb80-18" aria-hidden="true" tabindex="-1"></a>street_lights_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(street_lights_sf, <span class="dv">3857</span>)</span>
-<span id="cb80-19"><a href="#cb80-19" aria-hidden="true" tabindex="-1"></a>school_boundaries_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(school_boundaries, <span class="dv">3857</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Clean lumens values so they are all numeric</span></span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>street_lights <span class="ot">&lt;-</span> street_lights <span class="sc">%&gt;%</span></span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb82-4"><a href="#cb82-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">lumens_numeric =</span> <span class="fu">str_extract</span>(Lumens, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">d+[</span><span class="sc">\\</span><span class="st">d,]*&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb82-5"><a href="#cb82-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_replace_all</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb82-6"><a href="#cb82-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as.numeric</span>()</span>
+<span id="cb82-7"><a href="#cb82-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb82-8"><a href="#cb82-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb82-9"><a href="#cb82-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Route buffer for either side of the osrm route in meters</span></span>
+<span id="cb82-10"><a href="#cb82-10" aria-hidden="true" tabindex="-1"></a>route_buffer_meters <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb82-11"><a href="#cb82-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb82-12"><a href="#cb82-12" aria-hidden="true" tabindex="-1"></a><span class="do">## Make parks and street lights spatial</span></span>
+<span id="cb82-13"><a href="#cb82-13" aria-hidden="true" tabindex="-1"></a>parks_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(parks, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb82-14"><a href="#cb82-14" aria-hidden="true" tabindex="-1"></a>street_lights_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(street_lights, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;Lon&quot;</span>, <span class="st">&quot;Lat&quot;</span>), <span class="at">crs =</span> <span class="dv">4326</span>)</span>
+<span id="cb82-15"><a href="#cb82-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb82-16"><a href="#cb82-16" aria-hidden="true" tabindex="-1"></a><span class="do">## 3857 transformation for distance calculations</span></span>
+<span id="cb82-17"><a href="#cb82-17" aria-hidden="true" tabindex="-1"></a>parks_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(parks_sf, <span class="dv">3857</span>)</span>
+<span id="cb82-18"><a href="#cb82-18" aria-hidden="true" tabindex="-1"></a>street_lights_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(street_lights_sf, <span class="dv">3857</span>)</span>
+<span id="cb82-19"><a href="#cb82-19" aria-hidden="true" tabindex="-1"></a>school_boundaries_3857 <span class="ot">&lt;-</span> <span class="fu">st_transform</span>(school_boundaries, <span class="dv">3857</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 
