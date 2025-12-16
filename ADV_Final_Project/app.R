@@ -88,9 +88,10 @@ ui <- fluidPage(
         ),
         mainPanel(
           h4("Population Coverage"),
-          verbatimTextOutput("service_summary"),
-          leafletOutput("service_map", height = 600)
+          leafletOutput("service_map", height = 600),
+          tableOutput("service_table")
         )
+        
       )
     ),
     
@@ -133,11 +134,14 @@ ui <- fluidPage(
             value = 2,
             step = 0.1
           ),
-          h4("Route Statistics"),
-          verbatimTextOutput("route_stats"),
           uiOutput("no_parks_msg")
         ),
-        mainPanel(leafletOutput("map", height = 600))
+        mainPanel(
+          leafletOutput("map", height = 600),
+          hr(),  # optional horizontal line
+          h4("Route Statistics"),
+          tableOutput("route_stats_table")
+        )
       )
     )
   )
@@ -337,25 +341,8 @@ server <- function(input, output, session) {
     tracts <- st_intersection(census_3857, area)
     sum(tracts$A00001_1, na.rm = TRUE)
   })
-  output$service_summary <- renderText({
-    facility <- selected_facility()
-    population <- population_served()
-    req(facility, population)
-    
-    paste0(
-      "Facility: ",
-      facility$POPL_NAME,
-      "\n",
-      "Service Type: ",
-      input$service_type,
-      "\n",
-      "Radius Served: ",
-      input$service_radius,
-      " miles\n",
-      "Population Served within Radius: ",
-      population
-    )
-  })
+
+  
   output$service_map <- renderLeaflet({
     facility <- selected_facility()
     area <- service_area()
@@ -377,6 +364,28 @@ server <- function(input, output, session) {
         )
     }
   })
+  
+  output$service_table <- renderTable({
+    facility <- selected_facility()
+    area <- service_area()
+    population <- population_served()
+    
+    req(facility, area, population)
+    
+    # Convert area from m² to sq miles
+    area_sq_miles <- as.numeric(st_area(area)) * meters_to_sq_miles
+    pop_density <- round(population / area_sq_miles, 2)
+    
+    data.frame(
+      "Facility Name" = facility$POPL_NAME,
+      "Service Type" = input$service_type,
+      "Radius Served (miles)" = input$service_radius,
+      "Population Served" = population,
+      "Population per Sq Mile" = pop_density,
+      check.names = FALSE
+    )
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   
 ## -----------------------------------------------------------------
   
@@ -818,51 +827,37 @@ server <- function(input, output, session) {
   })
   
   
-  ## Stats output
+  ## Stats output table
   ## If null, display no output
-  output$route_stats <- renderText({
+  output$route_stats_table <- renderTable({
     lights <- route_lights()
     buf <- route_buffer()
     r <- route()
     
-    if (is.null(lights) || is.null(buf) || is.null(r)) {
-      return()
-    }
+    req(lights, buf, r)
     
-    ## Metrics calculation
+    # Metrics calculation
     area_sq_miles <- as.numeric(st_area(buf)) * meters_to_sq_miles
     num_lights <- nrow(lights)
-    lights_density <- num_lights / area_sq_miles
-    distance_miles <- as.numeric(st_length(r)) / meters_to_miles
+    lights_density <- round(num_lights / area_sq_miles, 2)
+    distance_miles <- round(as.numeric(st_length(r)) / meters_to_miles, 2)
     total_lumens <- sum(lights$lumens_numeric, na.rm = TRUE)
-    lumens_per_sq_mile <- total_lumens / area_sq_miles
-    pct_missing <- sum(is.na(lights$lumens_numeric)) / num_lights
+    lumens_per_sq_mile <- round(total_lumens / area_sq_miles, 2)
+    pct_missing <- round(100 * sum(is.na(lights$lumens_numeric)) / num_lights, 2)
     
-    ## Display metrics
-    paste0(
-      "Route distance: ",
-      round(distance_miles, 2),
-      " miles\n",
-      "Buffer area: ",
-      round(area_sq_miles, 2),
-      " sq miles\n",
-      "Number of street lights: ",
-      num_lights,
-      "\n",
-      "Lights per sq mile: ",
-      round(lights_density, 2),
-      "\n",
-      "Total illumination: ",
-      total_lumens,
-      " lumens\n",
-      "Lumens per sq. mile: ",
-      round(lumens_per_sq_mile, 2),
-      "\n",
-      "Lights without lumens data: ",
-      round(pct_missing, 2) * 100,
-      "%"
+    # Return as table
+    data.frame(
+      "Route Distance (miles)" = distance_miles,
+      "Buffer Area (sq miles)" = round(area_sq_miles, 2),
+      "Number of Street Lights" = num_lights,
+      "Lights per Sq Mile" = lights_density,
+      "Total Illumination (lumens)" = total_lumens,
+      "Lumens per Sq Mile" = lumens_per_sq_mile,
+      "Lights without Lumens Data (%)" = pct_missing,
+      check.names = FALSE
     )
-  })
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   
   ## Map output safely
   output$map <- renderLeaflet({
