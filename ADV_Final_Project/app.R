@@ -163,7 +163,6 @@ ui <- dashboardPage(
             status = "primary",
             solidHeader = TRUE,
             width = 3,
-            height = "calc(100vh - 80px)",
             dateRangeInput(
               "call_dates",
               "Select Date Range:",
@@ -186,6 +185,14 @@ ui <- dashboardPage(
               choices = c("All Departments" = "ALL", sort(unique(phone_calls$Department))),
               selected = "ALL"
             ),
+            sliderInput(
+              "top_n",
+              "Number of Top Call Types / Departments:",
+              min = 3,
+              max = 10,
+              value = 5,
+              step = 1
+            ),
             actionButton("reset_calls", "Reset Filters", icon = icon("redo"), class = "btn-primary")
           ),
           box(
@@ -193,7 +200,30 @@ ui <- dashboardPage(
             status = "info",
             solidHeader = TRUE,
             width = 9,
-            plotOutput("call_plot", height = "calc(100vh - 120px)")
+            plotOutput("call_plot", height = "500px")
+          )
+        ),
+        fluidRow(
+          box(
+            title = "Calls by Month",
+            width = 2,
+            tableOutput("month_table")
+          ),
+          box(
+            title = "Top Call Types",
+            width = 3,
+            tableOutput("call_type_table")
+          ),
+
+          box(
+            title = "Top Departments",
+            width = 3,
+            tableOutput("department_table")
+          ),
+          box(
+            title = "Call Duration",
+            width = 4,
+            tableOutput("duration_table")
           )
         )
       ),
@@ -202,6 +232,7 @@ ui <- dashboardPage(
       tabItem(
         tabName = "emergency",
         fluidRow(
+          # Service options box
           box(
             title = "Service Options",
             status = "danger",
@@ -222,23 +253,33 @@ ui <- dashboardPage(
               step = 0.25
             )
           ),
+          
+          # Map and stats table box
           box(
             title = "Population Coverage Map",
             status = "primary",
             solidHeader = TRUE,
             width = 9,
-            leafletOutput("service_map", height = "calc(100vh - 300px)"),
+            # Map
+            leafletOutput("service_map", height = "calc(100vh - 400px)"),
             hr(),
+            # Table label
             h5("Coverage Statistics"),
-            tableOutput("service_table")
+            # Scrollable table
+            div(
+              style = "max-height: 400px; overflow-y: auto;",
+              tableOutput("service_table")
+            )
           )
         )
-      ),
+      )
+      ,
       
       ## Business Licenses Tab
       tabItem(
         tabName = "licenses",
         fluidRow(
+          # Filter options box
           box(
             title = "Filter Options",
             status = "success",
@@ -252,23 +293,33 @@ ui <- dashboardPage(
             uiOutput("license_type_ui"),
             actionButton("reset_filters", "Reset Filters", icon = icon("redo"), class = "btn-success")
           ),
+          
+          # Map and summary table box
           box(
             title = "Business License Map",
             status = "primary",
             solidHeader = TRUE,
             width = 9,
-            leafletOutput("license_map", height = "calc(100vh - 300px)"),
+            # Map
+            leafletOutput("license_map", height = "calc(100vh - 400px)"),
             hr(),
+            # Table label
             uiOutput("license_summary_title"),
-            tableOutput("license_summary")
+            # Scrollable table
+            div(
+              style = "max-height: 200px; overflow-y: auto;",
+              tableOutput("license_summary")
+            )
           )
         )
-      ),
+      )
+      ,
       
       ## Street Lights / Routes Tab
       tabItem(
         tabName = "routes",
         fluidRow(
+          # Route selection box
           box(
             title = "Route Selection",
             status = "warning",
@@ -286,18 +337,27 @@ ui <- dashboardPage(
             ),
             uiOutput("no_parks_msg")
           ),
+          
+          # Map and table box
           box(
             title = "Walking Route Map",
             status = "primary",
             solidHeader = TRUE,
             width = 9,
-            leafletOutput("map", height = "calc(100vh - 300px)"),
+            # Map
+            leafletOutput("map", height = "calc(100vh - 400px)"),
             hr(),
-            h5("Route Statistics"),
-            tableOutput("route_stats_table")
+            # Table label
+            h4("Route Statistics"),
+            # Scrollable table
+            div(
+              style = "max-height: 200px; overflow-y: auto;",
+              tableOutput("route_stats_table")
+            )
           )
         )
       )
+      
     )
   )
 )
@@ -330,7 +390,7 @@ server <- function(input, output, session) {
   output$kpi_parks <- renderValueBox({
     valueBox(
       total_parks,
-      "City Parks",
+      "Parks",
       icon = icon("tree"),
       color = "olive"
     )
@@ -375,7 +435,7 @@ server <- function(input, output, session) {
   output$kpi_districts <- renderValueBox({
     valueBox(
       total_districts,
-      "Council Districts",
+      "City Council Districts",
       icon = icon("map"),
       color = "navy"
     )
@@ -392,7 +452,8 @@ server <- function(input, output, session) {
       labs(x = "", y = "Number of Calls") +
       theme_minimal() +
       theme(axis.text.y = element_text(size = 10)) +
-      scale_fill_brewer(palette = "Blues")
+      scale_fill_brewer(palette = "Blues")+
+      theme(axis.text.y = element_text(face="bold"))
   })
   
   output$home_license_plot <- renderPlot({
@@ -404,7 +465,8 @@ server <- function(input, output, session) {
       coord_flip() +
       labs(x = "", y = "Number of Businesses") +
       theme_minimal() +
-      scale_fill_manual(values = c("Safe" = "#28a745", "Expired" = "#dc3545", "Other" = "#6c757d"))
+      scale_fill_manual(values = c("Safe" = "#28a745", "Expired" = "#dc3545", "Other" = "#6c757d"))+
+      theme(axis.text.y = element_text(face="bold"))
   })
   
   output$home_recent_calls <- renderTable({
@@ -465,91 +527,82 @@ server <- function(input, output, session) {
   output$call_plot <- renderPlot({
     df <- selected_call_dates()
     
-    ## Top 5 called about
-    top_calls <- df %>%
-      count(Called_About, sort = TRUE) %>%
-      head(5)
+    top_calls <- df %>% count(Called_About, sort = TRUE) %>% head(input$top_n)
+    top_departments <- df %>% count(Department, sort = TRUE) %>% head(input$top_n)
     
-    ## Calls by month
-    month_counts <- df %>%
+    # Use original df for months
+    month_counts <- selected_call_dates() %>% 
       mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
       count(Month) %>%
       arrange(desc(n))
     
-    ## Convert Month to factor in order of descending count, with most calls on top
-    month_counts$Month <- factor(month_counts$Month, levels = rev(month_counts$Month))
     
-    ## Top 5 departments
-    top_departments <- df %>%
-      count(Department, sort = TRUE) %>%
-      head(5)
-    
-    ## Make axis consistent for each graph
     max_calls <- max(
       max(top_calls$n, na.rm = TRUE),
       max(month_counts$n, na.rm = TRUE),
       max(top_departments$n, na.rm = TRUE)
     )
     
-    ## Plots
+    # Plots
     call_plot <- ggplot(top_calls, aes(x = reorder(Called_About, n), y = n)) +
       geom_col(fill = "blue") +
       coord_flip() +
       ylim(0, max_calls) +
       labs(title = "Top Call Types", x = "", y = "Number of Calls") +
-      theme(axis.text.y = element_text(angle = 45, hjust = 1))
-    
-    month_plot <- ggplot(month_counts, aes(x = Month, y = n)) +
-      geom_col(fill = "orange") +
-      coord_flip() +
-      ylim(0, max_calls) +
-      labs(title = "Calls by Month", x = "", y = "Number of Calls") +
-      theme(axis.text.y = element_text(hjust = 1))
+      theme(axis.text.y = element_text(face="bold"))
     
     department_plot <- ggplot(top_departments, aes(x = reorder(Department, n), y = n)) +
       geom_col(fill = "forestgreen") +
       coord_flip() +
       ylim(0, max_calls) +
       labs(title = "Top Departments", x = "", y = "Number of Calls") +
-      theme(axis.text.y = element_text(angle = 45, hjust = 1))
+      theme(axis.text.y = element_text(face="bold"))
     
-    ## Combine plots
+    month_plot <- ggplot(month_counts, aes(x = reorder(Month, n), y = n)) +
+      geom_col(fill = "orange") +
+      coord_flip() +
+      ylim(0, max_calls) +
+      labs(title = "Calls by Month", x = "", y = "Number of Calls") +
+      theme(axis.text.y = element_text(face="bold"))
+    
     call_plot / month_plot / department_plot
   })
   
-  ## Top Call Types table
+  # Update tables
   output$call_type_table <- renderTable({
     df <- selected_call_dates()
-    
     df %>%
       count(Called_About, sort = TRUE) %>%
-      head(5) %>%
-      rename(
-        "Call Type" = Called_About,
-        "Number of Calls" = n
-      )
+      head(input$top_n) %>%
+      rename("Call Type" = Called_About,
+             "Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
   
-  ## Calls by month
+  output$department_table <- renderTable({
+    df <- selected_call_dates()
+    df %>%
+      count(Department, sort = TRUE) %>%
+      head(input$top_n) %>%
+      rename("Department" = Department,
+             "Number of Calls" = n)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   output$month_table <- renderTable({
     df <- selected_call_dates()
+    
+    if(nrow(df) == 0) {
+      return(data.frame(Month = character(0),
+                        "Number of Calls" = integer(0)))
+    }
     
     df %>%
       mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
       count(Month) %>%
       arrange(desc(n)) %>%
-      rename("Month" = Month, "Number of Calls" = n)
+      rename("Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
   
-  ## Departments table
-  output$department_table <- renderTable({
-    df <- selected_call_dates()
-    
-    df %>%
-      count(Department, sort = TRUE) %>%
-      head(5) %>%
-      rename("Department" = Department, "Number of Calls" = n)
-  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   
   ## Duration table
   output$duration_table <- renderTable({
