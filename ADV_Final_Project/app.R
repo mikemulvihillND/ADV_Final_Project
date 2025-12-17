@@ -63,16 +63,20 @@ ui <- fluidPage(
         plotOutput("call_plot"),
         hr(),
         fluidRow(
-          column(width = 4,
+          column(width = 3,
+                 h4("Calls by Month"),
+                 tableOutput("month_table")),
+          column(width = 3,
                  h4("Top Call Types"),
                  tableOutput("call_type_table")),
-          
-          column(width = 4,
+          column(width = 3,
                  h4("Top Departments"),
                  tableOutput("department_table")),
-          column(width = 4,
-                 h4("Calls by Month"),
-                 tableOutput("month_table"))
+          column(width = 3,
+                 h4("Call Duration"),
+                 tableOutput("duration_table"))
+
+
         )
         
       )
@@ -291,6 +295,17 @@ server <- function(input, output, session) {
       head(5) %>%
       rename("Department" = Department, "Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
+  ## Duration table
+  output$duration_table <- renderTable({
+    df <- selected_call_dates()
+    
+    df %>%
+      group_by(Called_About) %>% 
+      summarize(n = n(), avg_call_dur = round(mean(duration_Seconds, na.rm=TRUE),0)) %>% 
+      arrange(desc(n))%>% head(5) %>%
+      rename("Call Type" = Called_About, "Number of Calls" = n, "Average Call Length (Seconds)" = avg_call_dur)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
 
   
 ## -----------------------------------------------------------------
@@ -323,6 +338,17 @@ server <- function(input, output, session) {
     st_buffer(selected_facility(), dist = radius_m)
   })
   
+  other_facilities_in_radius <- reactive({
+    req(service_area(), selected_facility(), input$service_type)
+    facilities_3857 %>%
+      filter(
+        toupper(POPL_TYPE) == toupper(input$service_type),
+        POPL_NAME != selected_facility()$POPL_NAME
+      ) %>%
+      st_intersection(service_area()) %>%
+      nrow()
+  })
+  
   ## Get population served
   population_served <- reactive({
     area <- service_area()
@@ -342,10 +368,23 @@ server <- function(input, output, session) {
                 lat = 41.68,
                 zoom = 12)
     } else {
+      other_facilities <- facilities_3857 %>%
+        filter(
+          toupper(POPL_TYPE) == toupper(input$service_type),
+          POPL_NAME != facility$POPL_NAME
+        ) %>%
+        st_intersection(area)
       leaflet() %>%
         addTiles(group = "Basic") %>%
         addMarkers(data = st_transform(facility, 4326),
                    popup = facility$POPL_NAME) %>%
+        addCircleMarkers(
+          data = st_transform(other_facilities, 4326),
+          radius = 6,
+          color = "red",
+          fill = TRUE,
+          fillOpacity = 1,
+          popup = ~POPL_NAME) %>%
         addPolygons(
           data = st_transform(area, 4326),
           color = "blue",
@@ -359,19 +398,20 @@ server <- function(input, output, session) {
     facility <- selected_facility()
     area <- service_area()
     population <- population_served()
-    
+    other_count <- other_facilities_in_radius()
     req(facility, area, population)
     
     ## Meters squared to square miles
     area_sq_miles <- as.numeric(st_area(area)) * meters_to_sq_miles
     pop_density <- round(population / area_sq_miles, 2)
-    
+
     data.frame(
       "Facility Name" = facility$POPL_NAME,
       "Service Type" = input$service_type,
       "Radius Served (miles)" = input$service_radius,
       "Population Served" = population,
       "Population per Sq Mile" = pop_density,
+      "Other Facilities within Radius" = other_count,
       check.names = FALSE
     )
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
