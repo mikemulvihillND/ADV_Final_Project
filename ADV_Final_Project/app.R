@@ -67,18 +67,10 @@ ui <- dashboardPage(
         .content-wrapper, .right-side {
           background-color: #f4f6f9;
           height: calc(100vh - 50px);
-          overflow: hidden;
+          overflow-y: auto;
         }
         .content {
           padding: 8px;
-          height: calc(100vh - 60px);
-          overflow: hidden;
-        }
-        .tab-content {
-          height: 100%;
-        }
-        .tab-pane {
-          height: 100%;
         }
         .small-box .icon-large {
           font-size: 50px;
@@ -228,17 +220,17 @@ ui <- dashboardPage(
               max = 5,
               value = 2,
               step = 0.25
-            ),
-            hr(),
-            h5("Coverage Statistics"),
-            tableOutput("service_table")
+            )
           ),
           box(
             title = "Population Coverage Map",
             status = "primary",
             solidHeader = TRUE,
             width = 9,
-            leafletOutput("service_map", height = "calc(100vh - 120px)")
+            leafletOutput("service_map", height = "calc(100vh - 300px)"),
+            hr(),
+            h5("Coverage Statistics"),
+            tableOutput("service_table")
           )
         )
       ),
@@ -258,17 +250,17 @@ ui <- dashboardPage(
               choices = c("All Districts", sort(unique(businesses_indiana_districts$District)))
             ),
             uiOutput("license_type_ui"),
-            actionButton("reset_filters", "Reset Filters", icon = icon("redo"), class = "btn-success"),
-            hr(),
-            uiOutput("license_summary_title"),
-            tableOutput("license_summary")
+            actionButton("reset_filters", "Reset Filters", icon = icon("redo"), class = "btn-success")
           ),
           box(
             title = "Business License Map",
             status = "primary",
             solidHeader = TRUE,
             width = 9,
-            leafletOutput("license_map", height = "calc(100vh - 120px)")
+            leafletOutput("license_map", height = "calc(100vh - 300px)"),
+            hr(),
+            uiOutput("license_summary_title"),
+            tableOutput("license_summary")
           )
         )
       ),
@@ -292,17 +284,17 @@ ui <- dashboardPage(
               value = 2,
               step = 0.1
             ),
-            uiOutput("no_parks_msg"),
-            hr(),
-            h5("Route Statistics"),
-            tableOutput("route_stats_table")
+            uiOutput("no_parks_msg")
           ),
           box(
             title = "Walking Route Map",
             status = "primary",
             solidHeader = TRUE,
             width = 9,
-            leafletOutput("map", height = "calc(100vh - 120px)")
+            leafletOutput("map", height = "calc(100vh - 300px)"),
+            hr(),
+            h5("Route Statistics"),
+            tableOutput("route_stats_table")
           )
         )
       )
