@@ -5,7 +5,6 @@ suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
 suppressPackageStartupMessages(library(patchwork))
 suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(rsconnect))
 options(warn = -1)
 
 ## Load necessary data
@@ -20,7 +19,7 @@ street_lights_3857 <- readRDS("data/street_lights_3857.rds")
 all_routes_nested <- readRDS("data/school_park_routes.rds")
 
 meters_to_sq_miles <- 3.861e-7
-meters_to_miles <- 1609.34
+meters_per_mile <- 1609.34
 
 ## Overall fluid page
 ui <- fluidPage(
@@ -41,7 +40,7 @@ ui <- fluidPage(
         checkboxGroupInput(
           "call_months",
           "Or Select Specific Months:",
-          ## Filter selections by months present in the data frame (no June/July)
+          ## Filter selections by months present in the data frame (no June/July in the data set)
           choices = sort(unique(
             lubridate::month(phone_calls$Call_Date, label = TRUE, abbr = FALSE)
           )),
@@ -62,15 +61,9 @@ ui <- fluidPage(
       mainPanel(
         h4("Top Call Types"),
         plotOutput("call_plot"),
-        
-        hr(),  # optional separator
-        
+        hr(),
         fluidRow(
-          column(
-            width = 6,
-            h4("Calls by Month"),
-            tableOutput("month_table")
-          ),
+          column(width = 6, h4("Calls by Month"), tableOutput("month_table")),
           column(
             width = 6,
             h4("Top Departments"),
@@ -122,7 +115,7 @@ ui <- fluidPage(
           ))
         ),
         uiOutput("license_type_ui"),
-        actionButton("reset_filters", "Reset Filters", icon=icon("redo"))
+        actionButton("reset_filters", "Reset Filters", icon = icon("redo"))
       ),
       mainPanel(
         h4("License Status Summary"),
@@ -154,7 +147,7 @@ ui <- fluidPage(
         ),
         mainPanel(
           leafletOutput("map", height = 600),
-          hr(),  # optional horizontal line
+          hr(),
           h4("Route Statistics"),
           tableOutput("route_stats_table")
         )
@@ -165,8 +158,7 @@ ui <- fluidPage(
 
 ## Server
 server <- function(input, output, session) {
-  
-## -----------------------------------------------------------------
+  ## -----------------------------------------------------------------
   
   ## Tab 1 -  City Calls by Department
   
@@ -191,82 +183,53 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$reset_calls, {
-    # Reset date range to full range
-    updateDateRangeInput(session,
-                         "call_dates",
-                         start = min(phone_calls$Call_Date),
-                         end   = max(phone_calls$Call_Date))
-    
-    # Clear month checkboxes
-    updateCheckboxGroupInput(session, "call_months", selected = character(0))
-    
-    # Reset department to "ALL"
-    updateSelectInput(session, "call_departments", selected = "ALL")
-  })
-  
-  
-  ## Output user filtered top calls
-  output$call_summary <- renderText({
-    df <- selected_call_dates()
-    ## Get the top 5
-    called_about_count <- df %>% count(Called_About, sort = TRUE) %>% head(5)
-    department_count <- df %>% count(Department, sort = TRUE) %>% head(5)
-    
-    ## Output the text
-    paste0(
-      "Top Topics Called About:\n",
-      paste0(
-        " - ",
-        called_about_count$Called_About,
-        ": ",
-        called_about_count$n,
-        collapse = "\n"
-      ),
-      "\n\nTop Departments Called:\n",
-      paste0(
-        " - ",
-        department_count$Department,
-        ": ",
-        department_count$n,
-        collapse = "\n"
-      )
+    ## Reset date to full range
+    updateDateRangeInput(
+      session,
+      "call_dates",
+      start = min(phone_calls$Call_Date),
+      end   = max(phone_calls$Call_Date)
     )
     
+    ## Clear month checkboxes
+    updateCheckboxGroupInput(session, "call_months", selected = character(0))
+    
+    ## Reset department to all
+    updateSelectInput(session, "call_departments", selected = "ALL")
   })
 
-  
   output$call_plot <- renderPlot({
     df <- selected_call_dates()
     
-    # --- Top 5 called-about ---
+    ## Top 5 called about
     top_calls <- df %>%
       count(Called_About, sort = TRUE) %>%
       head(5)
     
-    # --- Calls by month ---
+    ## Calls by month
     month_counts <- df %>%
       mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
       count(Month) %>%
-      arrange(desc(n))  # sort descending by number of calls
+      arrange(desc(n))
     
-    # Convert Month to factor in order of descending count, with most calls on top
+    ## Convert Month to factor in order of descending count, with most calls on top
     month_counts$Month <- factor(month_counts$Month, levels = rev(month_counts$Month))
     
-    # --- Top 5 departments ---
+    ## Top 5 departments
     top_departments <- df %>%
       count(Department, sort = TRUE) %>%
       head(5)
     
-    # Determine max y across all plots for consistent axis
+    ## Make axis consistent for each graph
     max_calls <- max(
       max(top_calls$n, na.rm = TRUE),
       max(month_counts$n, na.rm = TRUE),
       max(top_departments$n, na.rm = TRUE)
     )
     
-    # --- Plots ---
+    ## Plots
     call_plot <- ggplot(top_calls, aes(x = reorder(Called_About, n), y = n)) +
-      geom_col(fill = "steelblue") +
+      geom_col(fill = "blue") +
       coord_flip() +
       ylim(0, max_calls) +
       labs(title = "Top Call Types", x = "", y = "Number of Calls") +
@@ -286,11 +249,11 @@ server <- function(input, output, session) {
       labs(title = "Top Departments", x = "", y = "Number of Calls") +
       theme(axis.text.y = element_text(angle = 45, hjust = 1))
     
-    # --- Combine plots ---
+    ## Combine plots
     call_plot / month_plot / department_plot
   })
   
-  # --- Calls by Month table ---
+  ## Calls by month
   output$month_table <- renderTable({
     df <- selected_call_dates()
     
@@ -301,7 +264,7 @@ server <- function(input, output, session) {
       rename("Month" = Month, "Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
   
-  # --- Top Departments table ---
+  ## Departments table
   output$department_table <- renderTable({
     df <- selected_call_dates()
     
@@ -310,28 +273,18 @@ server <- function(input, output, session) {
       head(5) %>%
       rename("Department" = Department, "Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
   
 ## -----------------------------------------------------------------
   
   ## Tab 2 - Emergency Service Coverage
   
+  ## Get service type
   observeEvent(input$service_type, {
     req(input$service_type)
     facilities_selected_type <- facilities_3857 %>% filter(toupper(POPL_TYPE) ==
                                                              toupper(input$service_type))
-    
+    ## Update facilities based on service selection
     updateSelectInput(
       session,
       "facility_dropdown",
@@ -345,20 +298,22 @@ server <- function(input, output, session) {
     facilities_3857 %>% filter(POPL_NAME == input$facility_dropdown)
   })
   
+  ## Get service area
   service_area <- reactive({
     req(selected_facility())
-    radius_m <- input$service_radius * meters_to_miles
+    radius_m <- input$service_radius * meters_per_mile
     st_buffer(selected_facility(), dist = radius_m)
   })
   
+  ## Get population served
   population_served <- reactive({
     area <- service_area()
     req(area)
     tracts <- st_intersection(census_3857, area)
     sum(tracts$A00001_1, na.rm = TRUE)
   })
-
   
+  ## Output the map
   output$service_map <- renderLeaflet({
     facility <- selected_facility()
     area <- service_area()
@@ -381,6 +336,7 @@ server <- function(input, output, session) {
     }
   })
   
+  ## Table of metrics
   output$service_table <- renderTable({
     facility <- selected_facility()
     area <- service_area()
@@ -388,7 +344,7 @@ server <- function(input, output, session) {
     
     req(facility, area, population)
     
-    # Convert area from m² to sq miles
+    ## Meters squared to square miles
     area_sq_miles <- as.numeric(st_area(area)) * meters_to_sq_miles
     pop_density <- round(population / area_sq_miles, 2)
     
@@ -458,16 +414,15 @@ server <- function(input, output, session) {
     }
   })
   
-  # In server:
   observeEvent(input$reset_filters, {
-    # Reset district and license dropdowns
+    ## Reset district and license dropdowns
     updateSelectInput(session, "district", selected = "All Districts")
     updateSelectInput(session, "expired_business", selected = "All Expired")
     
-    # Reset reactive value
+    ## Reset reactive value
     selected_district("All Districts")
     
-    # Reset map highlight and view
+    ## Reset map highlight and view
     leafletProxy("license_map") %>%
       clearGroup("highlight") %>%
       addPolygons(
@@ -478,13 +433,10 @@ server <- function(input, output, session) {
         label = ~ paste("District", Num),
         group = "highlight"
       ) %>%
-      setView(lng = -86.25, lat = 41.68, zoom = 12)
+      setView(lng = -86.25,
+              lat = 41.68,
+              zoom = 12)
   })
-  
-  
-  
-  ## Reactive values to track last click, allows for deselecting click
-  click_tracker <- reactiveValues(last_id = NULL, last_time = Sys.time())
   
   observeEvent(input$license_map_shape_click, {
     click <- input$license_map_shape_click
@@ -598,11 +550,12 @@ server <- function(input, output, session) {
       return(NULL)
     
     ## Filter businesses by district
-    df <- if (selected_district() == "All Districts") {
-      businesses_indiana_districts
-    } else {
-      businesses_indiana_districts %>% filter(District == selected_district())
-    }
+    # df <- if (selected_district() == "All Districts") {
+    #   businesses_indiana_districts
+    # } else {
+    #   businesses_indiana_districts %>% filter(District == selected_district())
+    # }
+    df <- district_businesses()
     
     if (input$expired_business == "All Expired") {
       ## If all expired, show all expired
@@ -636,11 +589,7 @@ server <- function(input, output, session) {
     req(selected_district())
     
     ## Filter businesses in the selected district
-    df <- if (selected_district() == "All Districts") {
-      businesses_indiana_districts
-    } else {
-      businesses_indiana_districts %>% filter(District == selected_district())
-    }
+    df <- district_businesses()
     
     ## Expired license types
     expired_types <- df %>%
@@ -662,7 +611,8 @@ server <- function(input, output, session) {
   
   output$license_summary_title <- renderUI({
     district_name <- selected_district()
-    if (is.null(district_name)) district_name <- "All Districts"
+    if (is.null(district_name))
+      district_name <- "All Districts"
     h4(paste("License Status Summary -", district_name))
   })
   
@@ -743,7 +693,7 @@ server <- function(input, output, session) {
   })
   
 ## -----------------------------------------------------------------
-
+  
   ## Tab 4 - Street lights along student walking paths
   ## Reactive based on selected school
   school_point <- reactive({
@@ -756,14 +706,14 @@ server <- function(input, output, session) {
   ## Get parks within user-selected radius
   parks_within_radius <- reactive({
     req(school_point())
-    radius_m <- input$radius_miles * meters_to_miles
+    radius_m <- input$radius_miles * meters_per_mile
     
     parks_3857 %>%
       filter(Park_Type_Kid_Friendly,
              as.numeric(st_distance(geometry, school_point())) <= radius_m)
   })
   
-  
+  ## Output error message if no parks are within walking distance
   output$no_parks_msg <- renderUI({
     if (nrow(parks_within_radius()) == 0) {
       tags$p("No kid-friendly parks within the selected walking distance.",
@@ -812,14 +762,8 @@ server <- function(input, output, session) {
     tryCatch({
       all_routes_nested[[input$school]][[input$park]]$route %>%
         st_transform(3857)
-      # osrmRoute(
-      #   src = st_transform(school_point(), 4326),
-      #   dst = st_transform(park, 4326),
-      #   server = "https://router.project-osrm.org/",
-      #   profile = "foot"
-      # ) %>%
-      #   st_transform(3857)
-    }, error = function(e) NULL)
+    }, error = function(e)
+      NULL)
   })
   
   
@@ -828,7 +772,8 @@ server <- function(input, output, session) {
   ## tryCatch in case route does not exist
   route_buffer <- reactive({
     r <- route()
-    if (is.null(r)) return(NULL)
+    if (is.null(r))
+      return(NULL)
     
     buffer_m <- 50  # fixed corridor width in meters
     st_buffer(st_make_valid(r), dist = buffer_m)
@@ -844,12 +789,8 @@ server <- function(input, output, session) {
     tolerance_m <- 100  # meters from the route line
     
     street_lights_3857 %>%
-      filter(
-        as.numeric(st_distance(geometry, r)) <= tolerance_m
-      )
+      filter(as.numeric(st_distance(geometry, r)) <= tolerance_m)
   })
-  
-  
   
   ## Stats output table
   ## If null, display no output
@@ -860,16 +801,16 @@ server <- function(input, output, session) {
     
     req(lights, buf, r)
     
-    # Metrics calculation
+    ## Metrics calculation
     area_sq_miles <- as.numeric(st_area(buf)) * meters_to_sq_miles
     num_lights <- nrow(lights)
     lights_density <- round(num_lights / area_sq_miles, 2)
-    distance_miles <- round(as.numeric(st_length(r)) / meters_to_miles, 2)
+    distance_miles <- round(as.numeric(st_length(r)) / meters_per_mile, 2)
     total_lumens <- sum(lights$lumens_numeric, na.rm = TRUE)
     lumens_per_sq_mile <- round(total_lumens / area_sq_miles, 2)
     pct_missing <- round(100 * sum(is.na(lights$lumens_numeric)) / num_lights, 2)
     
-    # Return as table
+    ## Return as table
     data.frame(
       "Route Distance (miles)" = distance_miles,
       "Buffer Area (sq miles)" = round(area_sq_miles, 2),

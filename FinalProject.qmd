@@ -68,8 +68,9 @@ plot(abandoned_properties$geometry)
 ```
 ## Constants
 ```{r}
+## Some constants to use
 meters_to_sq_miles <- 3.861e-7
-meters_to_miles <- 1609.34
+meters_per_mile <- 1609.34
 ```
 ## Tab 1 - 
 ```{r}
