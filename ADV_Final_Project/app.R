@@ -828,17 +828,12 @@ server <- function(input, output, session) {
   ## tryCatch in case route does not exist
   route_buffer <- reactive({
     r <- route()
-    route_buffer_meters <- input$radius_miles * meters_to_miles
+    if (is.null(r)) return(NULL)
     
-    if (is.null(r))
-      return(NULL)
-    
-    tryCatch({
-      st_buffer(st_make_valid(r), dist = route_buffer_meters)
-    }, error = function(e)
-      NULL)
-    
+    buffer_m <- 50  # fixed corridor width in meters
+    st_buffer(st_make_valid(r), dist = buffer_m)
   })
+  
   
   ## Street lights along route
   route_lights <- reactive({
