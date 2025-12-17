@@ -63,20 +63,22 @@ ui <- fluidPage(
         plotOutput("call_plot"),
         hr(),
         fluidRow(
-          column(width = 3,
+          column(width = 2,
+                 wellPanel(
                  h4("Calls by Month"),
-                 tableOutput("month_table")),
+                 tableOutput("month_table"))),
           column(width = 3,
+                 wellPanel(
                  h4("Top Call Types"),
-                 tableOutput("call_type_table")),
+                 tableOutput("call_type_table"))),
           column(width = 3,
+                 wellPanel(
                  h4("Top Departments"),
-                 tableOutput("department_table")),
-          column(width = 3,
+                 tableOutput("department_table"))),
+          column(width = 4,
+                 wellPanel(
                  h4("Call Duration"),
-                 tableOutput("duration_table"))
-
-
+                 tableOutput("duration_table")))
         )
         
       )
@@ -107,7 +109,8 @@ ui <- fluidPage(
         mainPanel(
           h4("Population Coverage"),
           leafletOutput("service_map", height = 600),
-          tableOutput("service_table")
+          wellPanel(
+          tableOutput("service_table"))
         )
         
       )
@@ -130,7 +133,8 @@ ui <- fluidPage(
         h4("License Status Summary"),
         leafletOutput("license_map"),
         uiOutput("license_summary_title"),
-        tableOutput("license_summary")
+        wellPanel(
+          tableOutput("license_summary"))
         
       )
     )),
@@ -158,7 +162,8 @@ ui <- fluidPage(
           leafletOutput("map", height = 600),
           hr(),
           h4("Route Statistics"),
-          tableOutput("route_stats_table")
+          wellPanel(
+            tableOutput("route_stats_table"))
         )
       )
     )
