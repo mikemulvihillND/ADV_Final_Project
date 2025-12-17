@@ -63,13 +63,18 @@ ui <- fluidPage(
         plotOutput("call_plot"),
         hr(),
         fluidRow(
-          column(width = 6, h4("Calls by Month"), tableOutput("month_table")),
-          column(
-            width = 6,
-            h4("Top Departments"),
-            tableOutput("department_table")
-          )
+          column(width = 4,
+                 h4("Top Call Types"),
+                 tableOutput("call_type_table")),
+          
+          column(width = 4,
+                 h4("Top Departments"),
+                 tableOutput("department_table")),
+          column(width = 4,
+                 h4("Calls by Month"),
+                 tableOutput("month_table"))
         )
+        
       )
       
       
@@ -252,6 +257,19 @@ server <- function(input, output, session) {
     ## Combine plots
     call_plot / month_plot / department_plot
   })
+  
+  ## Top Call Types table
+  output$call_type_table <- renderTable({
+    df <- selected_call_dates()
+    
+    df %>%
+      count(Called_About, sort = TRUE) %>%
+      head(5) %>%
+      rename(
+        "Call Type" = Called_About,
+        "Number of Calls" = n
+      )
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
   
   ## Calls by month
   output$month_table <- renderTable({
@@ -672,25 +690,61 @@ server <- function(input, output, session) {
   
   ## Table of expired metrics
   output$license_summary <- renderTable({
+    
     df <- district_businesses() %>% st_drop_geometry()
     
     if (nrow(df) == 0) {
-      return(data.frame(
-        `License Status` = NA,
-        `Number of Businesses` = 0,
-        `Percent of Total` = 0
-      ))
+      return(data.frame(Metric = NA, Value = NA))
     }
     
-    df %>%
-      count(status_group) %>%
-      mutate(percent = round(100 * n / sum(n), 2)) %>%
-      rename(
-        "License Status" = status_group,
-        "Number of Businesses" = n,
-        "Percent of Total" = percent
+    ## All expired in district
+    total_expired_df <- df %>% filter(status_group == "Expired")
+    total_expired_n <- nrow(total_expired_df)
+    
+    ## CASE 1: All Expired → original summary
+    if (is.null(input$expired_business) ||
+        input$expired_business == "All Expired") {
+      
+      return(
+        df %>%
+          count(status_group) %>%
+          mutate(percent = round(100 * n / sum(n), 2)) %>%
+          rename(
+            "License Status" = status_group,
+            "Number of Businesses" = n,
+            "Percent of Total" = percent
+          )
       )
-  })
+    }
+    
+    ## CASE 2: Specific license selected
+    expired_selected_n <- total_expired_df %>%
+      filter(`License Type` == input$expired_business) %>%
+      nrow()
+    
+    pct_of_expired <- ifelse(
+      total_expired_n > 0,
+      round(100 * expired_selected_n / total_expired_n, 2),
+      NA
+    )
+    
+    data.frame(
+      Metric = c(
+        paste("Expired", input$expired_business),
+        "Total Expired Businesses (District)",
+        "Percent of District Expired"
+      ),
+      Value = c(
+        as.integer(expired_selected_n),
+        as.integer(total_expired_n),
+        paste0(pct_of_expired, "%")
+      )
+    )
+    
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
+  
+  
   
 ## -----------------------------------------------------------------
   
