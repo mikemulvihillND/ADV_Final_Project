@@ -1,10 +1,12 @@
 suppressPackageStartupMessages(library(shiny))
+suppressPackageStartupMessages(library(shinydashboard))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(sf))
 suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
 suppressPackageStartupMessages(library(patchwork))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(shinyjs))
 options(warn = -1)
 
 ## Load necessary data
@@ -21,157 +23,467 @@ all_routes_nested <- readRDS("data/school_park_routes.rds")
 meters_to_sq_miles <- 3.861e-7
 meters_per_mile <- 1609.34
 
-## Overall fluid page
-ui <- fluidPage(
-  titlePanel("South Bend Quality of Life Dashboard"),
+## Pre-compute KPIs for dashboard
+total_calls <- nrow(phone_calls)
+total_businesses <- nrow(businesses_indiana_districts)
+total_parks <- nrow(parks_3857)
+total_facilities <- nrow(facilities_3857)
+total_schools <- nrow(school_boundaries_3857)
+total_street_lights <- nrow(street_lights_3857)
+total_districts <- nrow(districts_sf)
+total_population <- sum(census_3857$A00001_1, na.rm = TRUE)
+
+## UI using shinydashboard
+ui <- dashboardPage(
+  skin = "blue",
   
-  tabsetPanel(
-    ## City Calls by Department
-    tabPanel("Department Calls", sidebarLayout(
-      sidebarPanel(
-        dateRangeInput(
-          "call_dates",
-          "Select Date Range:",
-          start = min(phone_calls$Call_Date),
-          end   = max(phone_calls$Call_Date),
-          min = min(phone_calls$Call_Date),
-          max = max(phone_calls$Call_Date)
-        ),
-        checkboxGroupInput(
-          "call_months",
-          "Or Select Specific Months:",
-          ## Filter selections by months present in the data frame (no June/July in the data set)
-          choices = sort(unique(
-            lubridate::month(phone_calls$Call_Date, label = TRUE, abbr = FALSE)
-          )),
-          selected = NULL
-        ),
-        selectInput(
-          "call_departments",
-          "And/Or Select Specific Departments:",
-          choices = c("All Departments" = "ALL", sort(unique(
-            phone_calls$Department
-          ))),
-          selected = "ALL"
-        ),
-        actionButton("reset_calls", "Reset Filters", icon = icon("redo"))
-        
-        
-      ),
-      mainPanel(
-        h4("Top Call Types"),
-        plotOutput("call_plot"),
-        hr(),
-        fluidRow(
-          column(width = 2,
-                 wellPanel(
-                 h4("Calls by Month"),
-                 tableOutput("month_table"))),
-          column(width = 3,
-                 wellPanel(
-                 h4("Top Call Types"),
-                 tableOutput("call_type_table"))),
-          column(width = 3,
-                 wellPanel(
-                 h4("Top Departments"),
-                 tableOutput("department_table"))),
-          column(width = 4,
-                 wellPanel(
-                 h4("Call Duration"),
-                 tableOutput("duration_table")))
-        )
-        
-      )
-      
-      
-    )),
-    
-    ## Emergency Service Coverage
-    tabPanel(
-      "Emergency Service Coverage",
-      sidebarLayout(
-        sidebarPanel(
-          radioButtons(
-            "service_type",
-            "Select Service:",
-            choices = c("Fire Station", "Police Station")
-          ),
-          selectInput("facility_dropdown", "Select Facility:", choices = NULL),
-          sliderInput(
-            "service_radius",
-            "Select Radius (miles):",
-            min = 0.5,
-            max = 5,
-            value = 2,
-            step = 0.25
-          )
-        ),
-        mainPanel(
-          h4("Population Coverage"),
-          leafletOutput("service_map", height = 600),
-          wellPanel(
-          tableOutput("service_table"))
-        )
-        
-      )
+  ## Dashboard Header
+  dashboardHeader(title = "South Bend Quality of Life", titleWidth = 300),
+  
+  ## Dashboard Sidebar
+  dashboardSidebar(
+    sidebarMenu(
+      id = "tabs",
+      menuItem("Dashboard Home", tabName = "home", icon = icon("dashboard")),
+      menuItem("Department Calls", tabName = "calls", icon = icon("phone")),
+      menuItem("Emergency Services", tabName = "emergency", icon = icon("building")),
+      menuItem("Business Licenses", tabName = "licenses", icon = icon("briefcase")),
+      menuItem("School-Park Routes", tabName = "routes", icon = icon("route"))
+    )
+  ),
+  
+  ## Dashboard Body
+  dashboardBody(
+    tags$head(
+      tags$style(HTML("
+        /* Prevent body scrolling */
+        html, body {
+          height: 100%;
+          overflow: hidden;
+        }
+        .wrapper {
+          height: 100vh;
+          overflow: hidden;
+        }
+        .content-wrapper, .right-side {
+          background-color: #f4f6f9;
+          height: calc(100vh - 50px);
+          overflow-y: auto;
+        }
+        .content {
+          padding: 8px;
+        }
+        .small-box .icon-large {
+          font-size: 50px;
+        }
+        .info-box {
+          min-height: 60px;
+        }
+        .small-box {
+          margin-bottom: 8px;
+          min-height: 80px;
+        }
+        .small-box h3 {
+          font-size: 24px;
+          margin: 0;
+        }
+        .small-box p {
+          font-size: 12px;
+        }
+        .small-box .icon {
+          font-size: 50px;
+        }
+        .box {
+          margin-bottom: 8px;
+        }
+        .box-header {
+          border-bottom: 1px solid #f4f4f4;
+          padding: 6px 10px;
+        }
+        .box-body {
+          padding: 6px;
+        }
+        .main-sidebar {
+          height: 100vh;
+        }
+        /* Make tables compact */
+        .table {
+          margin-bottom: 0;
+          font-size: 12px;
+        }
+        .table td, .table th {
+          padding: 4px 8px;
+        }
+        /* Fluid row spacing */
+        .row {
+          margin-bottom: 0;
+        }
+      "))
     ),
     
-    ## Business License Analysis
-    tabPanel("Business Licenses", sidebarLayout(
-      sidebarPanel(
-        selectInput(
-          "district",
-          "Select City Council District:",
-          choices = c("All Districts", sort(
-            unique(businesses_indiana_districts$District)
-          ))
+    tabItems(
+      ## Home Tab with KPIs
+      tabItem(
+        tabName = "home",
+        fluidRow(
+          valueBoxOutput("kpi_calls", width = 3),
+          valueBoxOutput("kpi_businesses", width = 3),
+          valueBoxOutput("kpi_parks", width = 3),
+          valueBoxOutput("kpi_population", width = 3)
         ),
-        uiOutput("license_type_ui"),
-        actionButton("reset_filters", "Reset Filters", icon = icon("redo"))
-      ),
-      mainPanel(
-        h4("License Status Summary"),
-        leafletOutput("license_map"),
-        uiOutput("license_summary_title"),
-        wellPanel(
-          tableOutput("license_summary"))
-        
-      )
-    )),
-    
-    ## Street lights along student walking paths
-    tabPanel(
-      "Street Lights between Schools and Parks",
-      sidebarLayout(
-        sidebarPanel(
-          selectInput("school", "Select a School:", choices = school_boundaries_3857$School),
-          ## Parks will dynamically update depending on school selected
-          ## and the walking radius
-          selectInput("park", "Select a Park:", choices = NULL),
-          sliderInput(
-            "radius_miles",
-            "Walking distance radius (miles):",
-            min = 0,
-            max = 2,
-            value = 2,
-            step = 0.1
+        fluidRow(
+          valueBoxOutput("kpi_facilities", width = 3),
+          valueBoxOutput("kpi_schools", width = 3),
+          valueBoxOutput("kpi_lights", width = 3),
+          valueBoxOutput("kpi_districts", width = 3)
+        ),
+        fluidRow(
+          box(
+            title = "311 Calls by Department",
+            status = "primary",
+            solidHeader = TRUE,
+            width = 6,
+            plotOutput("home_calls_plot", height = "calc(100vh - 320px)")
           ),
-          uiOutput("no_parks_msg")
+          box(
+            title = "Business License Status",
+            status = "success",
+            solidHeader = TRUE,
+            width = 6,
+            plotOutput("home_license_plot", height = "calc(100vh - 320px)")
+          )
+        )
+      ),
+      
+      ## Department Calls Tab
+      tabItem(
+        tabName = "calls",
+        fluidRow(
+          box(
+            title = "Filter Options",
+            status = "primary",
+            solidHeader = TRUE,
+            width = 3,
+            dateRangeInput(
+              "call_dates",
+              "Select Date Range:",
+              start = min(phone_calls$Call_Date),
+              end   = max(phone_calls$Call_Date),
+              min = min(phone_calls$Call_Date),
+              max = max(phone_calls$Call_Date)
+            ),
+            checkboxGroupInput(
+              "call_months",
+              "Or Select Specific Months:",
+              choices = sort(unique(
+                lubridate::month(phone_calls$Call_Date, label = TRUE, abbr = FALSE)
+              )),
+              selected = NULL
+            ),
+            selectInput(
+              "call_departments",
+              "And/Or Select Specific Departments:",
+              choices = c("All Departments" = "ALL", sort(unique(phone_calls$Department))),
+              selected = "ALL"
+            ),
+            sliderInput(
+              "top_n",
+              "Number of Top Call Types / Departments:",
+              min = 3,
+              max = 10,
+              value = 5,
+              step = 1
+            ),
+            actionButton("reset_calls", "Reset Filters", icon = icon("redo"), class = "btn-primary")
+          ),
+          box(
+            title = "Call Analysis",
+            status = "info",
+            solidHeader = TRUE,
+            width = 9,
+            plotOutput("call_plot", height = "500px")
+          )
         ),
-        mainPanel(
-          leafletOutput("map", height = 600),
-          hr(),
-          h4("Route Statistics"),
-          wellPanel(
-            tableOutput("route_stats_table"))
+        fluidRow(
+          box(
+            title = "Calls by Month",
+            width = 2,
+            tableOutput("month_table")
+          ),
+          box(
+            title = "Top Departments",
+            width = 3,
+            tableOutput("department_table")
+          ),
+          box(
+            title = "Top Call Types",
+            width = 3,
+            tableOutput("call_type_table")
+          ),
+          box(
+            title = "Call Duration",
+            width = 4,
+            tableOutput("duration_table")
+          )
+        )
+      ),
+      
+      ## Emergency Service Coverage Tab
+      tabItem(
+        tabName = "emergency",
+        fluidRow(
+          # Service options box
+          box(
+            title = "Service Options",
+            status = "danger",
+            solidHeader = TRUE,
+            width = 3,
+            radioButtons(
+              "service_type",
+              "Select Service:",
+              choices = c("Fire Station", "Police Station")
+            ),
+            selectInput("facility_dropdown", "Select Facility:", choices = NULL),
+            sliderInput(
+              "service_radius",
+              "Select Radius (miles):",
+              min = 0.5,
+              max = 5,
+              value = 2,
+              step = 0.25
+            )
+          ),
+          
+          # Map and stats table box
+          box(
+            title = "Population Coverage Map",
+            status = "primary",
+            solidHeader = TRUE,
+            width = 9,
+            # Map
+            leafletOutput("service_map", height = "calc(100vh - 400px)"),
+            hr(),
+            # Table label
+            h5("Coverage Statistics"),
+            # Scrollable table
+            div(
+              style = "max-height: 400px; overflow-y: auto;",
+              tableOutput("service_table")
+            )
+          )
         )
       )
+      ,
+      
+      ## Business Licenses Tab
+      tabItem(
+        tabName = "licenses",
+        fluidRow(
+          # Filter options box
+          box(
+            title = "Filter Options",
+            status = "success",
+            solidHeader = TRUE,
+            width = 3,
+            selectInput(
+              "district",
+              "Select City Council District:",
+              choices = c("All Districts", sort(unique(businesses_indiana_districts$District)))
+            ),
+            uiOutput("license_type_ui"),
+            actionButton("reset_filters", "Reset Filters", icon = icon("redo"), class = "btn-success")
+          ),
+          
+          # Map and summary table box
+          box(
+            title = "Business License Map",
+            status = "primary",
+            solidHeader = TRUE,
+            width = 9,
+            # Map
+            leafletOutput("license_map", height = "calc(100vh - 400px)"),
+            hr(),
+            # Table label
+            uiOutput("license_summary_title"),
+            # Scrollable table
+            div(
+              style = "max-height: 200px; overflow-y: auto;",
+              tableOutput("license_summary")
+            )
+          )
+        )
+      )
+      ,
+      
+      ## Street Lights / Routes Tab
+      tabItem(
+        tabName = "routes",
+        fluidRow(
+          # Route selection box
+          box(
+            title = "Route Selection",
+            status = "warning",
+            solidHeader = TRUE,
+            width = 3,
+            selectInput("school", "Select a School:", choices = school_boundaries_3857$School),
+            selectInput("park", "Select a Park:", choices = NULL),
+            sliderInput(
+              "radius_miles",
+              "Walking distance radius (miles):",
+              min = 0,
+              max = 2,
+              value = 2,
+              step = 0.1
+            ),
+            uiOutput("no_parks_msg")
+          ),
+          
+          # Map and table box
+          box(
+            title = "Walking Route Map",
+            status = "primary",
+            solidHeader = TRUE,
+            width = 9,
+            # Map
+            leafletOutput("map", height = "calc(100vh - 400px)"),
+            hr(),
+            # Table label
+            h4("Route Statistics"),
+            # Scrollable table
+            div(
+              style = "max-height: 200px; overflow-y: auto;",
+              tableOutput("route_stats_table")
+            )
+          )
+        )
+      )
+      
     )
   )
 )
 
 ## Server
 server <- function(input, output, session) {
+  
+  ## -----------------------------------------------------------------
+  ## Home Tab - KPIs and Summary Charts
+  ## -----------------------------------------------------------------
+  
+  output$kpi_calls <- renderValueBox({
+    valueBox(
+      format(total_calls, big.mark = ","),
+      "Total 311 Calls",
+      icon = icon("phone"),
+      color = "blue"
+    )
+  })
+  
+  output$kpi_businesses <- renderValueBox({
+    valueBox(
+      format(total_businesses, big.mark = ","),
+      "Registered Businesses",
+      icon = icon("briefcase"),
+      color = "green"
+    )
+  })
+  
+  output$kpi_parks <- renderValueBox({
+    valueBox(
+      total_parks,
+      "Parks",
+      icon = icon("tree"),
+      color = "olive"
+    )
+  })
+  
+  output$kpi_population <- renderValueBox({
+    valueBox(
+      format(total_population, big.mark = ","),
+      "Total Population",
+      icon = icon("users"),
+      color = "purple"
+    )
+  })
+  
+  output$kpi_facilities <- renderValueBox({
+    valueBox(
+      total_facilities,
+      "Public Facilities",
+      icon = icon("building"),
+      color = "red"
+    )
+  })
+  
+  output$kpi_schools <- renderValueBox({
+    valueBox(
+      total_schools,
+      "Schools",
+      icon = icon("school"),
+      color = "yellow"
+    )
+  })
+  
+  output$kpi_lights <- renderValueBox({
+    valueBox(
+      format(total_street_lights, big.mark = ","),
+      "Street Lights",
+      icon = icon("lightbulb"),
+      color = "aqua"
+    )
+  })
+  
+  output$kpi_districts <- renderValueBox({
+    valueBox(
+      total_districts,
+      "City Council Districts",
+      icon = icon("map"),
+      color = "navy"
+    )
+  })
+  
+  ## Home page charts
+  output$home_calls_plot <- renderPlot({
+    phone_calls %>%
+      count(Department, sort = TRUE) %>%
+      head(8) %>%
+      ggplot(aes(x = reorder(Department, n), y = n, fill = Department)) +
+      geom_col(show.legend = FALSE) +
+      coord_flip() +
+      labs(x = "", y = "Number of Calls") +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 10)) +
+      scale_fill_brewer(palette = "Blues")+
+      theme(axis.text.y = element_text(face="bold"))
+  })
+  
+  output$home_license_plot <- renderPlot({
+    businesses_indiana_districts %>%
+      st_drop_geometry() %>%
+      count(status_group, sort = TRUE) %>%
+      ggplot(aes(x = reorder(status_group, n), y = n, fill = status_group)) +
+      geom_col(show.legend = FALSE) +
+      coord_flip() +
+      labs(x = "", y = "Number of Businesses") +
+      theme_minimal() +
+      scale_fill_manual(values = c("Safe" = "#28a745", "Expired" = "#dc3545", "Other" = "#6c757d"))+
+      theme(axis.text.y = element_text(face="bold"))
+  })
+  
+  output$home_recent_calls <- renderTable({
+    phone_calls %>%
+      mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
+      count(Month, name = "Calls") %>%
+      arrange(desc(Calls)) %>%
+      head(5)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
+  output$home_top_calls <- renderTable({
+    phone_calls %>%
+      count(Called_About, sort = TRUE) %>%
+      head(5) %>%
+      rename("Call Type" = Called_About, "Count" = n)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   ## -----------------------------------------------------------------
   
   ## Tab 1 -  City Calls by Department
@@ -196,13 +508,55 @@ server <- function(input, output, session) {
     phone_calls_filtered
   })
   
+  ## Update manual date ranges to match the selected months if check boxes are used
+  observeEvent(input$call_months, {
+    if (length(input$call_months) == 0) return()
+    
+    month_nums <- match(input$call_months, month.name)
+    
+    dates_in_months <- as.Date(phone_calls$Call_Date)[
+      lubridate::month(phone_calls$Call_Date) %in% month_nums
+    ]
+    
+    if (length(dates_in_months) == 0) return()
+    
+    min_allowed <- as.Date(min(phone_calls$Call_Date))
+    max_allowed <- as.Date(max(phone_calls$Call_Date))
+    
+    start_date <- max(
+      lubridate::floor_date(min(dates_in_months), "month"),
+      min_allowed
+    )
+    
+    end_date <- min(
+      lubridate::ceiling_date(max(dates_in_months), "month") - lubridate::days(1),
+      max_allowed
+    )
+    
+    updateDateRangeInput(
+      session,
+      "call_dates",
+      start = start_date,
+      end   = end_date
+    )
+  })
+  
+  ## disable manual date ranges if a month check box is selected
+  observe({
+    if (length(input$call_months) > 0) {
+      shinyjs::disable("call_dates")
+    } else {
+      shinyjs::enable("call_dates")
+    }
+  })
+  
   observeEvent(input$reset_calls, {
     ## Reset date to full range
     updateDateRangeInput(
       session,
       "call_dates",
       start = min(phone_calls$Call_Date),
-      end   = max(phone_calls$Call_Date)
+      end   = max(phone_calls$Call_Date),
     )
     
     ## Clear month checkboxes
@@ -210,96 +564,89 @@ server <- function(input, output, session) {
     
     ## Reset department to all
     updateSelectInput(session, "call_departments", selected = "ALL")
+    
+    updateSliderInput(session, "top_n", value=5)
   })
 
   output$call_plot <- renderPlot({
     df <- selected_call_dates()
     
-    ## Top 5 called about
-    top_calls <- df %>%
-      count(Called_About, sort = TRUE) %>%
-      head(5)
+    top_calls <- df %>% count(Called_About, sort = TRUE) %>% head(input$top_n)
+    top_departments <- df %>% count(Department, sort = TRUE) %>% head(input$top_n)
     
-    ## Calls by month
-    month_counts <- df %>%
+    # Use original df for months
+    month_counts <- selected_call_dates() %>% 
       mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
       count(Month) %>%
       arrange(desc(n))
     
-    ## Convert Month to factor in order of descending count, with most calls on top
-    month_counts$Month <- factor(month_counts$Month, levels = rev(month_counts$Month))
     
-    ## Top 5 departments
-    top_departments <- df %>%
-      count(Department, sort = TRUE) %>%
-      head(5)
-    
-    ## Make axis consistent for each graph
     max_calls <- max(
       max(top_calls$n, na.rm = TRUE),
       max(month_counts$n, na.rm = TRUE),
       max(top_departments$n, na.rm = TRUE)
     )
     
-    ## Plots
+    # Plots
     call_plot <- ggplot(top_calls, aes(x = reorder(Called_About, n), y = n)) +
       geom_col(fill = "blue") +
       coord_flip() +
       ylim(0, max_calls) +
       labs(title = "Top Call Types", x = "", y = "Number of Calls") +
-      theme(axis.text.y = element_text(angle = 45, hjust = 1))
-    
-    month_plot <- ggplot(month_counts, aes(x = Month, y = n)) +
-      geom_col(fill = "orange") +
-      coord_flip() +
-      ylim(0, max_calls) +
-      labs(title = "Calls by Month", x = "", y = "Number of Calls") +
-      theme(axis.text.y = element_text(hjust = 1))
+      theme(axis.text.y = element_text(face="bold"))
     
     department_plot <- ggplot(top_departments, aes(x = reorder(Department, n), y = n)) +
       geom_col(fill = "forestgreen") +
       coord_flip() +
       ylim(0, max_calls) +
       labs(title = "Top Departments", x = "", y = "Number of Calls") +
-      theme(axis.text.y = element_text(angle = 45, hjust = 1))
+      theme(axis.text.y = element_text(face="bold"))
     
-    ## Combine plots
-    call_plot / month_plot / department_plot
+    month_plot <- ggplot(month_counts, aes(x = reorder(Month, n), y = n)) +
+      geom_col(fill = "orange") +
+      coord_flip() +
+      ylim(0, max_calls) +
+      labs(title = "Calls by Month", x = "", y = "Number of Calls") +
+      theme(axis.text.y = element_text(face="bold"))
+    
+    month_plot / department_plot / call_plot
   })
   
-  ## Top Call Types table
+  # Update tables
   output$call_type_table <- renderTable({
     df <- selected_call_dates()
-    
     df %>%
       count(Called_About, sort = TRUE) %>%
-      head(5) %>%
-      rename(
-        "Call Type" = Called_About,
-        "Number of Calls" = n
-      )
+      head(input$top_n) %>%
+      rename("Call Type" = Called_About,
+             "Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
   
-  ## Calls by month
+  output$department_table <- renderTable({
+    df <- selected_call_dates()
+    df %>%
+      count(Department, sort = TRUE) %>%
+      head(input$top_n) %>%
+      rename("Department" = Department,
+             "Number of Calls" = n)
+  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   output$month_table <- renderTable({
     df <- selected_call_dates()
+    
+    if(nrow(df) == 0) {
+      return(data.frame(Month = character(0),
+                        "Number of Calls" = integer(0)))
+    }
     
     df %>%
       mutate(Month = lubridate::month(Call_Date, label = TRUE, abbr = TRUE)) %>%
       count(Month) %>%
       arrange(desc(n)) %>%
-      rename("Month" = Month, "Number of Calls" = n)
+      rename("Number of Calls" = n)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
   
-  ## Departments table
-  output$department_table <- renderTable({
-    df <- selected_call_dates()
-    
-    df %>%
-      count(Department, sort = TRUE) %>%
-      head(5) %>%
-      rename("Department" = Department, "Number of Calls" = n)
-  }, striped = TRUE, bordered = TRUE, hover = TRUE)
+  
   
   ## Duration table
   output$duration_table <- renderTable({
@@ -308,8 +655,8 @@ server <- function(input, output, session) {
     df %>%
       group_by(Called_About) %>% 
       summarize(n = n(), avg_call_dur = round(mean(duration_Seconds, na.rm=TRUE),0)) %>% 
-      arrange(desc(n))%>% head(5) %>%
-      rename("Call Type" = Called_About, "Number of Calls" = n, "Average Call Length (Seconds)" = avg_call_dur)
+      arrange(desc(n))%>% head(input$top_n) %>% select(Called_About, avg_call_dur)%>%
+      rename("Call Type" = Called_About, "Average Call Length (Seconds)" = avg_call_dur)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
 
   
@@ -393,7 +740,8 @@ server <- function(input, output, session) {
         addPolygons(
           data = st_transform(area, 4326),
           color = "blue",
-          weight = 4
+          weight = 4,
+          options = pathOptions(clickable = FALSE)
         )
     }
   })
@@ -414,9 +762,10 @@ server <- function(input, output, session) {
       "Facility Name" = facility$POPL_NAME,
       "Service Type" = input$service_type,
       "Radius Served (miles)" = input$service_radius,
-      "Population Served" = population,
+      "Population Served" = as.integer(population),
       "Population per Sq Mile" = pop_density,
       "Other Facilities within Radius" = other_count,
+      "Population Served per Facility" = population/(other_count+1),
       check.names = FALSE
     )
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
