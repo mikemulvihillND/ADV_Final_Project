@@ -6,6 +6,7 @@ suppressPackageStartupMessages(library(leaflet))
 suppressPackageStartupMessages(library(osrm))
 suppressPackageStartupMessages(library(patchwork))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(shinyjs))
 options(warn = -1)
 
 ## Load necessary data
@@ -210,15 +211,14 @@ ui <- dashboardPage(
             tableOutput("month_table")
           ),
           box(
-            title = "Top Call Types",
-            width = 3,
-            tableOutput("call_type_table")
-          ),
-
-          box(
             title = "Top Departments",
             width = 3,
             tableOutput("department_table")
+          ),
+          box(
+            title = "Top Call Types",
+            width = 3,
+            tableOutput("call_type_table")
           ),
           box(
             title = "Call Duration",
@@ -508,13 +508,55 @@ server <- function(input, output, session) {
     phone_calls_filtered
   })
   
+  ## Update manual date ranges to match the selected months if check boxes are used
+  observeEvent(input$call_months, {
+    if (length(input$call_months) == 0) return()
+    
+    month_nums <- match(input$call_months, month.name)
+    
+    dates_in_months <- as.Date(phone_calls$Call_Date)[
+      lubridate::month(phone_calls$Call_Date) %in% month_nums
+    ]
+    
+    if (length(dates_in_months) == 0) return()
+    
+    min_allowed <- as.Date(min(phone_calls$Call_Date))
+    max_allowed <- as.Date(max(phone_calls$Call_Date))
+    
+    start_date <- max(
+      lubridate::floor_date(min(dates_in_months), "month"),
+      min_allowed
+    )
+    
+    end_date <- min(
+      lubridate::ceiling_date(max(dates_in_months), "month") - lubridate::days(1),
+      max_allowed
+    )
+    
+    updateDateRangeInput(
+      session,
+      "call_dates",
+      start = start_date,
+      end   = end_date
+    )
+  })
+  
+  ## disable manual date ranges if a month check box is selected
+  observe({
+    if (length(input$call_months) > 0) {
+      shinyjs::disable("call_dates")
+    } else {
+      shinyjs::enable("call_dates")
+    }
+  })
+  
   observeEvent(input$reset_calls, {
     ## Reset date to full range
     updateDateRangeInput(
       session,
       "call_dates",
       start = min(phone_calls$Call_Date),
-      end   = max(phone_calls$Call_Date)
+      end   = max(phone_calls$Call_Date),
     )
     
     ## Clear month checkboxes
@@ -522,6 +564,8 @@ server <- function(input, output, session) {
     
     ## Reset department to all
     updateSelectInput(session, "call_departments", selected = "ALL")
+    
+    updateSliderInput(session, "top_n", value=5)
   })
 
   output$call_plot <- renderPlot({
@@ -565,7 +609,7 @@ server <- function(input, output, session) {
       labs(title = "Calls by Month", x = "", y = "Number of Calls") +
       theme(axis.text.y = element_text(face="bold"))
     
-    call_plot / month_plot / department_plot
+    month_plot / department_plot / call_plot
   })
   
   # Update tables
@@ -611,8 +655,8 @@ server <- function(input, output, session) {
     df %>%
       group_by(Called_About) %>% 
       summarize(n = n(), avg_call_dur = round(mean(duration_Seconds, na.rm=TRUE),0)) %>% 
-      arrange(desc(n))%>% head(5) %>%
-      rename("Call Type" = Called_About, "Number of Calls" = n, "Average Call Length (Seconds)" = avg_call_dur)
+      arrange(desc(n))%>% head(input$top_n) %>% select(Called_About, avg_call_dur)%>%
+      rename("Call Type" = Called_About, "Average Call Length (Seconds)" = avg_call_dur)
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
 
   
@@ -696,7 +740,8 @@ server <- function(input, output, session) {
         addPolygons(
           data = st_transform(area, 4326),
           color = "blue",
-          weight = 4
+          weight = 4,
+          options = pathOptions(clickable = FALSE)
         )
     }
   })
@@ -717,9 +762,10 @@ server <- function(input, output, session) {
       "Facility Name" = facility$POPL_NAME,
       "Service Type" = input$service_type,
       "Radius Served (miles)" = input$service_radius,
-      "Population Served" = population,
+      "Population Served" = as.integer(population),
       "Population per Sq Mile" = pop_density,
       "Other Facilities within Radius" = other_count,
+      "Population Served per Facility" = population/(other_count+1),
       check.names = FALSE
     )
   }, striped = TRUE, bordered = TRUE, hover = TRUE)
