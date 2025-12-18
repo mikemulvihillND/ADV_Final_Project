@@ -9,6 +9,12 @@ suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(shinyjs))
 options(warn = -1)
 
+## The work was split in the following ways:
+## Darien - Tab 1
+## Austin - Tab 2 and Frontend
+## Mike - Tab 4
+## Zach - Tab 3
+
 ## Load necessary data
 phone_calls <- readRDS("data/phone_calls.rds")
 facilities_3857 <- readRDS("data/facilities_3857.rds")
